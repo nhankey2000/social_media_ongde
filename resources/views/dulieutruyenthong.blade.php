@@ -799,7 +799,7 @@
                 <tr>
                     <td><strong>${item.title && item.title.length > 13 ? item.title.substring(0, 13) + '...' : (item.title || 'Không có tiêu đề')}</strong></td>
                     <td><span class="type-badge ${item.type}">${item.type === 'image' ? 'Ảnh' : 'Video'}</span></td>
-                    <td>${item.content ? item.content.substring(0, 100) + '...' : 'Không có nội dung'}</td>
+                    <td>${item.content ? item.content.substring(0, 10) + '...' : 'Không có nội dung'}</td>
                     <td>
                         <button class="media-button copy" onclick="copyContent('${encodeURIComponent(item.content || '')}')"><i class="fas fa-clipboard"></i></button>
                         <button class="media-button view" onclick="viewPost(${item.id}, '${encodeURIComponent(item.title || '')}', '${encodeURIComponent(item.content || '')}', '${item.type}', '${formatDate(item.created_at)}')"><i class="fas fa-eye"></i></button>
