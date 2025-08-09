@@ -43,11 +43,11 @@
             width: 100%;
             height: 100%;
             background-image:
-                radial-gradient(circle at 20% 80%, rgba(255, 255, 255, 0.1) 0%, transparent 50%),
-                radial-gradient(circle at 80% 20%, rgba(255, 255, 255, 0.08) 0%, transparent 50%),
-                radial-gradient(circle at 40% 40%, rgba(255, 255, 255, 0.06) 0%, transparent 50%),
-                radial-gradient(circle at 60% 80%, rgba(255, 255, 255, 0.04) 0%, transparent 50%),
-                radial-gradient(circle at 90% 60%, rgba(255, 255, 255, 0.05) 0%, transparent 50%);
+                    radial-gradient(circle at 20% 80%, rgba(255, 255, 255, 0.1) 0%, transparent 50%),
+                    radial-gradient(circle at 80% 20%, rgba(255, 255, 255, 0.08) 0%, transparent 50%),
+                    radial-gradient(circle at 40% 40%, rgba(255, 255, 255, 0.06) 0%, transparent 50%),
+                    radial-gradient(circle at 60% 80%, rgba(255, 255, 255, 0.04) 0%, transparent 50%),
+                    radial-gradient(circle at 90% 60%, rgba(255, 255, 255, 0.05) 0%, transparent 50%);
             animation: floatParticles 12s ease-in-out infinite;
             pointer-events: none;
             z-index: 0;
@@ -280,6 +280,7 @@
             display: inline-flex;
             align-items: center;
             justify-content: center;
+            position: relative;
         }
 
         .media-button:hover {
@@ -301,6 +302,27 @@
 
         .media-button i {
             font-size: 1rem;
+        }
+
+        .media-button.downloading {
+            background: linear-gradient(45deg, #9ca3af, #6b7280);
+            cursor: not-allowed;
+        }
+
+        .media-button.downloading::after {
+            content: '';
+            position: absolute;
+            width: 16px;
+            height: 16px;
+            border: 2px solid #ffffff;
+            border-top: 2px solid transparent;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
         }
 
         .media-preview {
@@ -428,6 +450,35 @@
             margin-bottom: 4px;
         }
 
+        .download-status {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 12px 20px;
+            border-radius: 8px;
+            z-index: 1000;
+            min-width: 200px;
+            text-align: center;
+            opacity: 0;
+            transform: translateX(100%);
+            transition: all 0.3s ease;
+        }
+
+        .download-status.show {
+            opacity: 1;
+            transform: translateX(0);
+        }
+
+        .download-status.success {
+            background: rgba(34, 197, 94, 0.9);
+        }
+
+        .download-status.error {
+            background: rgba(239, 68, 68, 0.9);
+        }
+
         @media (max-width: 768px) {
             .dropdown-menu {
                 position: relative;
@@ -469,6 +520,14 @@
             .media-button i {
                 font-size: 0.9rem;
             }
+
+            .download-status {
+                top: 10px;
+                right: 10px;
+                left: 10px;
+                min-width: auto;
+                font-size: 0.9rem;
+            }
         }
     </style>
 </head>
@@ -486,16 +545,16 @@
         <div class="tab-menu">
             <div class="dropdown">
                 <button class="dropdown-toggle active" onclick="toggleDropdown('posts')">
-                    📝 Nội Dung Bài Viết <i class="fas fa-chevron-down"></i>
+                    Nội Dung Bài Viết <i class="fas fa-chevron-down"></i>
                 </button>
                 <div class="dropdown-menu" id="posts-dropdown">
-                    <button class="dropdown-item all-items" onclick="selectContent('posts', 'all', 'Tất Cả')">🔥 Tất Cả Bài Viết</button>
+                    <button class="dropdown-item all-items" onclick="selectContent('posts', 'all', 'Tất Cả')">Tất Cả Bài Viết</button>
                 </div>
             </div>
 
             <div class="dropdown">
                 <button class="dropdown-toggle" onclick="toggleDropdown('images')">
-                    🖼️ Kho Ảnh <i class="fas fa-chevron-down"></i>
+                    Kho Ảnh <i class="fas fa-chevron-down"></i>
                 </button>
                 <div class="dropdown-menu" id="images-dropdown">
                     <button class="dropdown-item all-items" onclick="selectContent('images', 'all', 'Tất Cả')">🔥 Tất Cả Ảnh</button>
@@ -504,7 +563,7 @@
 
             <div class="dropdown">
                 <button class="dropdown-toggle" onclick="toggleDropdown('videos')">
-                    🎥 Kho Video <i class="fas fa-chevron-down"></i>
+                    Kho Video <i class="fas fa-chevron-down"></i>
                 </button>
                 <div class="dropdown-menu" id="videos-dropdown">
                     <button class="dropdown-item all-items" onclick="selectContent('videos', 'all', 'Tất Cả')">🔥 Tất Cả Video</button>
@@ -537,6 +596,9 @@
         </div>
     </div>
 
+    <!-- Download status notification -->
+    <div class="download-status" id="downloadStatus"></div>
+
     <div class="footer">
         <p class="footer-text">© 2025 Làng Du Lịch Sinh Thái Ông Đề. Tất cả quyền được bảo lưu.</p>
         <p class="footer-text">Công Ty TNHH Làng Du Lịch Sinh Thái Ông Đề.</p>
@@ -555,7 +617,7 @@
     // API endpoints
     const API_BASE_URL = window.location.origin;
 
-    // Shuffle array function - Fisher-Yates algorithm
+    // Utility functions
     function shuffleArray(array) {
         const shuffled = [...array];
         for (let i = shuffled.length - 1; i > 0; i--) {
@@ -565,7 +627,28 @@
         return shuffled;
     }
 
-    // Load categories khi trang load
+    function showDownloadStatus(message, type = 'info') {
+        const statusEl = document.getElementById('downloadStatus');
+        if (statusEl) {
+            statusEl.textContent = message;
+            statusEl.className = `download-status show ${type}`;
+
+            setTimeout(() => {
+                statusEl.classList.remove('show');
+            }, 3000);
+        }
+    }
+
+    // Safe element access
+    function safeGetElement(id) {
+        const element = document.getElementById(id);
+        if (!element) {
+            console.warn(`Element with ID '${id}' not found`);
+        }
+        return element;
+    }
+
+    // Load categories
     async function loadCategories() {
         try {
             const response = await fetch(`${API_BASE_URL}/api/categories`);
@@ -576,27 +659,27 @@
                 populateDropdowns();
             }
         } catch (error) {
-            console.log('Categories chưa có dữ liệu hoặc chưa tạo API');
+            console.log('Categories API not available:', error);
         }
     }
 
-    // Điền danh mục vào các dropdown
+    // Populate dropdowns with categories
     function populateDropdowns() {
         const dropdowns = ['posts', 'images', 'videos'];
 
         dropdowns.forEach(type => {
-            const dropdown = document.getElementById(`${type}-dropdown`);
+            const dropdown = safeGetElement(`${type}-dropdown`);
             if (!dropdown) return;
 
-            // Xóa các item cũ (trừ "Tất cả")
+            // Remove old items (except "All")
             const oldItems = dropdown.querySelectorAll('.dropdown-item:not(.all-items)');
             oldItems.forEach(item => item.remove());
 
-            // Thêm các danh mục
+            // Add categories
             categories.forEach(category => {
                 const item = document.createElement('button');
                 item.className = 'dropdown-item';
-                const categoryName = category.ten_danh_muc || category.name || 'Danh mục không tên';
+                const categoryName = category.ten_danh_muc || category.name || 'Unnamed Category';
                 item.textContent = `📂 ${categoryName}`;
                 item.onclick = () => selectContent(type, category.id, categoryName);
                 dropdown.appendChild(item);
@@ -606,22 +689,27 @@
 
     // Toggle dropdown
     function toggleDropdown(type) {
-        // Đóng tất cả dropdown khác
+        // Close all other dropdowns
         document.querySelectorAll('.dropdown-menu').forEach(menu => {
             if (menu.id !== `${type}-dropdown`) {
                 menu.classList.remove('show');
             }
         });
 
-        // Toggle dropdown hiện tại
-        const dropdown = document.getElementById(`${type}-dropdown`);
-        dropdown.classList.toggle('show');
+        // Toggle current dropdown
+        const dropdown = safeGetElement(`${type}-dropdown`);
+        if (dropdown) {
+            dropdown.classList.toggle('show');
+        }
 
         // Update active state
         document.querySelectorAll('.dropdown-toggle').forEach(toggle => {
             toggle.classList.remove('active');
         });
-        event.target.classList.add('active');
+
+        if (event && event.target) {
+            event.target.classList.add('active');
+        }
     }
 
     // Select content with category
@@ -629,7 +717,7 @@
         currentType = type;
         currentCategory = categoryId;
 
-        // Đóng dropdown
+        // Close dropdowns
         document.querySelectorAll('.dropdown-menu').forEach(menu => {
             menu.classList.remove('show');
         });
@@ -641,16 +729,25 @@
             videos: 'Kho Video'
         };
 
-        document.getElementById('mainTitle').textContent = `${typeNames[type]} - ${categoryName}`;
-        document.getElementById('subtitle').textContent = `Quản lý ${type === 'posts' ? 'bài viết' : type === 'images' ? 'ảnh' : 'video'} thuộc danh mục: ${categoryName}`;
+        const mainTitle = safeGetElement('mainTitle');
+        const subtitle = safeGetElement('subtitle');
 
-        // Load data with shuffle
+        if (mainTitle) {
+            mainTitle.textContent = `${typeNames[type]} - ${categoryName}`;
+        }
+
+        if (subtitle) {
+            subtitle.textContent = `Quản lý ${type === 'posts' ? 'bài viết' : type === 'images' ? 'ảnh' : 'video'} thuộc danh mục: ${categoryName}`;
+        }
+
+        // Load data
         await loadData(type, categoryId);
     }
 
-    // Load data with category filter and auto shuffle
+    // Load data with category filter
     async function loadData(type, categoryId = 'all') {
-        const contentArea = document.getElementById('contentArea');
+        const contentArea = safeGetElement('contentArea');
+        if (!contentArea) return;
 
         try {
             contentArea.innerHTML = '<div class="loading">🎲 Đang tải dữ liệu ngẫu nhiên...</div>';
@@ -679,7 +776,6 @@
                 return;
             }
 
-            // Lưu và shuffle dữ liệu
             currentData = data.data;
             renderTable(currentData, type);
 
@@ -689,13 +785,12 @@
         }
     }
 
-    // Render table based on type with auto shuffle
+    // Render table
     function renderTable(items, type) {
-        const contentArea = document.getElementById('contentArea');
+        const contentArea = safeGetElement('contentArea');
+        if (!contentArea) return;
 
-        // Shuffle dữ liệu mỗi lần render
         const shuffledItems = shuffleArray(items);
-
         let columns, rows;
 
         if (type === 'posts') {
@@ -719,7 +814,17 @@
                         ${item.url ?
                 (item.type === 'image' ?
                         `<img src="${item.url}" alt="Preview" class="media-preview" onerror="this.style.display='none'">` :
-                        `<video class="media-preview" muted><source src="${item.url}" type="video/mp4"></video>`
+                        `<div class="video-preview-container">
+                            <video class="media-preview" muted preload="metadata" onclick="this.play()" onloadeddata="this.style.display='block'">
+                                <source src="${item.url}" type="video/mp4">
+                                <source src="${item.url}" type="video/webm">
+                                <source src="${item.url}" type="video/mov">
+                                Video không được hỗ trợ
+                            </video>
+                            <div class="video-play-overlay" onclick="playVideo(this)">
+                                <i class="fas fa-play-circle"></i>
+                            </div>
+                        </div>`
                 ) :
                 'Không có file'
             }
@@ -729,7 +834,7 @@
                     <td>
                         ${item.url ? `
                             <button class="media-button view" onclick="viewMedia('${item.url}', '${item.type}')"><i class="fas fa-eye"></i></button>
-                            <button class="media-button download" onclick="downloadMedia('${item.url}')"><i class="fas fa-download"></i></button>
+                            <button class="media-button download" onclick="downloadMedia('${item.url}', this)"><i class="fas fa-download"></i></button>
                         ` : 'Không có tệp'}
                     </td>
                 </tr>
@@ -756,18 +861,54 @@
     // Copy content
     function copyContent(content) {
         const decodedContent = decodeURIComponent(content);
-        navigator.clipboard.writeText(decodedContent).then(() => {
-            alert('📋 Đã sao chép nội dung!');
-        }).catch(err => {
-            alert('❌ Lỗi khi sao chép nội dung');
-        });
+
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(decodedContent).then(() => {
+                showDownloadStatus('📋 Đã sao chép nội dung!', 'success');
+            }).catch(() => {
+                // Fallback for older browsers
+                fallbackCopyTextToClipboard(decodedContent);
+            });
+        } else {
+            fallbackCopyTextToClipboard(decodedContent);
+        }
+    }
+
+    // Fallback copy function
+    function fallbackCopyTextToClipboard(text) {
+        const textArea = document.createElement("textarea");
+        textArea.value = text;
+        textArea.style.top = "0";
+        textArea.style.left = "0";
+        textArea.style.position = "fixed";
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+
+        try {
+            const successful = document.execCommand('copy');
+            if (successful) {
+                showDownloadStatus('📋 Đã sao chép nội dung!', 'success');
+            } else {
+                showDownloadStatus('❌ Không thể sao chép', 'error');
+            }
+        } catch (err) {
+            showDownloadStatus('❌ Lỗi khi sao chép', 'error');
+        }
+
+        document.body.removeChild(textArea);
     }
 
     // View post details
     function viewPost(postId, title, content, type, created_at) {
-        const modal = document.getElementById('postModal');
-        document.getElementById('modalTitle').textContent = decodeURIComponent(title);
-        document.getElementById('modalContent').innerHTML = `
+        const modal = safeGetElement('postModal');
+        const modalTitle = safeGetElement('modalTitle');
+        const modalContent = safeGetElement('modalContent');
+
+        if (!modal || !modalTitle || !modalContent) return;
+
+        modalTitle.textContent = decodeURIComponent(title);
+        modalContent.innerHTML = `
             <table class="modal-table">
                 <tr>
                     <th>ID</th>
@@ -799,15 +940,17 @@
 
     // View media
     function viewMedia(url, type) {
-        const modal = document.getElementById('mediaModal');
-        const content = document.getElementById('mediaModalContent');
+        const modal = safeGetElement('mediaModal');
+        const content = safeGetElement('mediaModalContent');
+
+        if (!modal || !content) return;
 
         if (type === 'image') {
             content.innerHTML = `
                 <div class="media-modal-content">
                     <img src="${url}" alt="Image Preview">
                     <div>
-                        <button class="media-button download" onclick="downloadMedia('${url}')"><i class="fas fa-download"></i> Tải về</button>
+                        <button class="media-button download" onclick="downloadMedia('${url}', this)"><i class="fas fa-download"></i> Tải về</button>
                     </div>
                 </div>
             `;
@@ -819,7 +962,7 @@
                         Your browser does not support the video tag.
                     </video>
                     <div>
-                        <button class="media-button download" onclick="downloadMedia('${url}')"><i class="fas fa-download"></i> Tải về</button>
+                        <button class="media-button download" onclick="downloadMedia('${url}', this)"><i class="fas fa-download"></i> Tải về</button>
                     </div>
                 </div>
             `;
@@ -827,22 +970,149 @@
         modal.style.display = 'flex';
     }
 
-    // Download media
-    function downloadMedia(url) {
+    // Download media - improved for mobile and sandbox environment
+    async function downloadMedia(url, buttonElement = null) {
+        if (buttonElement) {
+            buttonElement.classList.add('downloading');
+            buttonElement.innerHTML = '';
+        }
+
+        // Check if mobile
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
+        try {
+            if (isMobile) {
+                // Mobile: Show instructions modal
+                showMobileDownloadModal(url);
+                showDownloadStatus('📱 Xem hướng dẫn tải xuống cho mobile', 'info');
+            } else {
+                // Desktop: Try direct download with fallback
+                showDownloadStatus('⏬ Đang tải xuống...', 'info');
+
+                try {
+                    // Try fetch first
+                    const response = await fetch(url, {
+                        mode: 'cors',
+                        credentials: 'omit'
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+
+                    const blob = await response.blob();
+                    const downloadUrl = window.URL.createObjectURL(blob);
+
+                    const link = document.createElement('a');
+                    link.href = downloadUrl;
+
+                    // Create filename from URL
+                    const fileName = url.split('/').pop() || 'download';
+                    link.download = fileName;
+
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+
+                    // Cleanup
+                    setTimeout(() => window.URL.revokeObjectURL(downloadUrl), 100);
+                    showDownloadStatus('✅ Tải xuống thành công!', 'success');
+
+                } catch (fetchError) {
+                    // Fallback to opening in new tab
+                    throw fetchError;
+                }
+            }
+
+        } catch (error) {
+            console.error('Download error:', error);
+
+            // Ultimate fallback: open in new tab
+            showDownloadStatus('🔗 Đang mở trong tab mới...', 'info');
+            try {
+                const link = document.createElement('a');
+                link.href = url;
+                link.target = '_blank';
+                link.rel = 'noopener noreferrer';
+
+                // Add download attribute
+                const fileName = url.split('/').pop() || 'download';
+                link.download = fileName;
+
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+
+                if (isMobile) {
+                    showDownloadStatus('📱 Đã mở file. Nhấn giữ ảnh/video và chọn "Lưu" để tải xuống!', 'success');
+                } else {
+                    showDownloadStatus('🔗 Đã mở file trong tab mới', 'success');
+                }
+            } catch (fallbackError) {
+                showDownloadStatus('❌ Không thể tải xuống file', 'error');
+            }
+        } finally {
+            if (buttonElement) {
+                buttonElement.classList.remove('downloading');
+                buttonElement.innerHTML = '<i class="fas fa-download"></i>';
+            }
+        }
+    }
+
+    // Mobile download instructions modal
+    function showMobileDownloadModal(url) {
+        const modalHtml = `
+            <div class="modal" id="mobileDownloadModal" style="display: flex;">
+                <div class="modal-content">
+                    <span class="close-button" onclick="closeModal('mobileDownloadModal')">&times;</span>
+                    <h2>📱 Hướng dẫn tải xuống trên Mobile</h2>
+                    <div style="text-align: left; padding: 20px; line-height: 1.8;">
+                        <p><strong>Bước 1:</strong> Nhấn nút "Mở File" bên dưới</p>
+                        <p><strong>Bước 2:</strong> File sẽ mở trong tab mới</p>
+                        <p><strong>Bước 3:</strong> Nhấn giữ vào ảnh/video</p>
+                        <p><strong>Bước 4:</strong> Chọn "Lưu hình ảnh" hoặc "Tải xuống"</p>
+                        <hr style="margin: 15px 0;">
+                        <div style="text-align: center;">
+                            <button class="media-button" style="width: auto; padding: 12px 24px; margin: 10px;" onclick="openFileInNewTab('${url}')">
+                                <i class="fas fa-external-link-alt"></i> Mở File
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        // Remove old modal if exists
+        const oldModal = document.getElementById('mobileDownloadModal');
+        if (oldModal) oldModal.remove();
+
+        // Add new modal
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+    }
+
+    // Open file in new tab
+    function openFileInNewTab(url) {
         const link = document.createElement('a');
         link.href = url;
-        link.download = url.split('/').pop();
+        link.target = '_blank';
+        link.rel = 'noopener noreferrer';
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
+
+        closeModal('mobileDownloadModal');
+        showDownloadStatus('📱 Đã mở file! Nhấn giữ để lưu xuống thiết bị', 'success');
     }
 
     // Close modal
     function closeModal(modalId) {
-        document.getElementById(modalId).style.display = 'none';
+        const modal = safeGetElement(modalId);
+        if (modal) {
+            modal.style.display = 'none';
+        }
     }
 
-    // Close dropdowns when clicking outside
+    // Event listeners
     document.addEventListener('click', function(event) {
         if (!event.target.closest('.dropdown')) {
             document.querySelectorAll('.dropdown-menu').forEach(menu => {
@@ -853,10 +1123,19 @@
 
     // Initialize
     document.addEventListener('DOMContentLoaded', async function() {
-        // Load categories nếu có
+        // Check required elements
+        const requiredElements = ['mainTitle', 'subtitle', 'contentArea'];
+        const missingElements = requiredElements.filter(id => !safeGetElement(id));
+
+        if (missingElements.length > 0) {
+            console.error('Missing required elements:', missingElements);
+            return;
+        }
+
+        // Load categories if available
         await loadCategories();
 
-        // Load default content (tất cả bài viết) với shuffle
+        // Load default content
         await selectContent('posts', 'all', 'Tất Cả');
     });
 </script>
