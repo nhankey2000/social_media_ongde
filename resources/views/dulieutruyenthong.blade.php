@@ -797,7 +797,7 @@
             columns = ['Tiêu Đề', 'Loại', 'Nội Dung', 'Hành Động'];
             rows = shuffledItems.map(item => `
                 <tr>
-                    <td><strong>${item.title && item.title.length > 13 ? item.title.substring(0, 13) + '...' : (item.title || 'Không có tiêu đề')}</strong></td>
+                    <td><strong>${item.title && item.title.length > 10 ? item.title.substring(0, 10) + '...' : (item.title || 'Không có tiêu đề')}</strong></td>
                     <td><span class="type-badge ${item.type}">${item.type === 'image' ? 'Ảnh' : 'Video'}</span></td>
                     <td>${item.content ? item.content.substring(0, 10) + '...' : 'Không có nội dung'}</td>
                     <td>
