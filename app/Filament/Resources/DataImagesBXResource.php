@@ -2,9 +2,9 @@
 
 namespace App\Filament\Resources;
 
-use App\Filament\Resources\ImagesDataResource\Pages;
-use App\Models\ImagesData;
-use App\Models\DanhmucData;
+use App\Filament\Resources\DataImagesBXResource\Pages;
+use App\Models\DataImagesBX;
+use App\Models\DanhmucBX;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -12,13 +12,15 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Support\Facades\Storage;
 
-class ImagesDataResource extends Resource
+class DataImagesBXResource extends Resource
 {
-    protected static ?string $model = ImagesData::class;
+    protected static ?string $model = DataImagesBX::class;
+
     protected static ?string $navigationIcon = 'heroicon-o-photo';
+
     protected static ?string $navigationLabel = 'Kho Ảnh & Video';
 
-    protected static ?string $navigationGroup = 'LDL Ông Đề';
+    protected static ?string $navigationGroup = 'Bánh Xèo Cô Tư';
 
     public static function form(Form $form): Form
     {
@@ -34,21 +36,21 @@ class ImagesDataResource extends Resource
                     ->afterStateUpdated(fn (callable $set) => $set('files', [])),
 
                 Forms\Components\Select::make('id_danhmuc_data')
-                    ->label('Danh mục')
+                    ->label('Danh mục BX')
                     ->required()
-                    ->relationship('danhmucData', 'ten_danh_muc')
+                    ->relationship('danhmucBX', 'ten_danh_muc')
                     ->createOptionForm([
                         Forms\Components\TextInput::make('ten_danh_muc')
                             ->label('Tên danh mục')
                             ->required()
                             ->maxLength(255),
                     ])
-                    ->createOptionAction(fn ($action) => $action->modalHeading('Thêm danh mục mới')),
+                    ->createOptionAction(fn ($action) => $action->modalHeading('Thêm danh mục BX mới')),
 
                 Forms\Components\FileUpload::make('files')
                     ->label('Upload Files')
                     ->multiple()
-                    ->directory('media-files')
+                    ->directory('media-bx-files') // Đổi thành thư mục riêng cho BX
                     ->disk('public')
                     ->required()
                     ->maxFiles(20)
@@ -78,9 +80,8 @@ class ImagesDataResource extends Resource
                     ->visible(fn (callable $get): bool => !empty($get('type')))
                     ->columnSpanFull(),
 
-                // Hidden field để lưu URL cho edit form
                 Forms\Components\Hidden::make('url')
-                    ->visible(fn (?ImagesData $record): bool => $record !== null),
+                    ->visible(fn (?DataImagesBX $record): bool => $record !== null),
             ]);
     }
 
@@ -97,8 +98,8 @@ class ImagesDataResource extends Resource
                         'success' => 'image',
                     ]),
 
-                Tables\Columns\TextColumn::make('danhmucData.ten_danh_muc')
-                    ->label('Danh mục')
+                Tables\Columns\TextColumn::make('danhmucBX.ten_danh_muc')
+                    ->label('Danh mục BX')
                     ->searchable()
                     ->sortable(),
 
@@ -119,7 +120,8 @@ class ImagesDataResource extends Resource
                 Tables\Columns\TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()
-                    ->toggleable(),
+                    ->toggleable()
+                    ->visible(false),
             ])
             ->filters([
                 Tables\Filters\SelectFilter::make('type')
@@ -128,8 +130,8 @@ class ImagesDataResource extends Resource
                         'image' => 'Image',
                     ]),
                 Tables\Filters\SelectFilter::make('id_danhmuc_data')
-                    ->label('Danh mục')
-                    ->options(DanhmucData::pluck('ten_danh_muc', 'id')),
+                    ->label('Danh mục BX')
+                    ->options(DanhmucBX::pluck('ten_danh_muc', 'id')),
             ])
             ->actions([
                 Tables\Actions\Action::make('download')
@@ -150,9 +152,9 @@ class ImagesDataResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListImagesData::route('/'),
-            'create' => Pages\CreateImagesData::route('/create'),
-            'edit' => Pages\EditImagesData::route('/{record}/edit'),
+            'index' => Pages\ListDataImagesBX::route('/'),
+            'create' => Pages\CreateDataImagesBX::route('/create'),
+            'edit' => Pages\EditDataImagesBX::route('/{record}/edit'),
         ];
     }
 }

@@ -19,9 +19,9 @@ class DataPostNHResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-document-text';
 
-    protected static ?string $navigationLabel = 'Data Posts NH';
+    protected static ?string $navigationLabel = 'Kho Bài Viết';
 
-    protected static ?string $navigationGroup = 'NH Management';
+    protected static ?string $navigationGroup = 'Nhà Hàng Hồ Bơi';
 
     public static function form(Form $form): Form
     {

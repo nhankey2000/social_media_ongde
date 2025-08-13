@@ -2,23 +2,23 @@
 
 namespace App\Filament\Resources;
 
-use App\Filament\Resources\DanhmucNHSResource\Pages;
-use App\Models\DanhmucNHS;
+use App\Filament\Resources\DanhmucBXResource\Pages;
+use App\Models\DanhmucBX;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 
-class DanhmucNHSResource extends Resource
+class DanhmucBXResource extends Resource
 {
-    protected static ?string $model = DanhmucNHS::class;
+    protected static ?string $model = DanhmucBX::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
 
     protected static ?string $navigationLabel = 'Danh mục';
 
-    protected static ?string $navigationGroup = 'Nhà Hàng Hồ Bơi';
+    protected static ?string $navigationGroup = 'Bánh Xèo Cô Tư';
 
     public static function form(Form $form): Form
     {
@@ -28,7 +28,7 @@ class DanhmucNHSResource extends Resource
                     ->label('Tên danh mục')
                     ->required()
                     ->maxLength(255)
-                    ->unique(DanhmucNHS::class, 'ten_danh_muc'),
+                    ->unique(DanhmucBX::class, 'ten_danh_muc'),
             ]);
     }
 
@@ -74,9 +74,9 @@ class DanhmucNHSResource extends Resource
     public static function getPages(): array
     {
         return [
-             'index' => Pages\ListDanhmucNHS::route('/'),
-             'create' => Pages\CreateDanhmucNHS::route('/create'),
-             'edit' => Pages\EditDanhmucNHS::route('/{record}/edit'),
+            'index' => Pages\ListDanhmucBX::route('/'),
+            'create' => Pages\CreateDanhmucBX::route('/create'),
+            'edit' => Pages\EditDanhmucBX::route('/{record}/edit'),
         ];
     }
 }

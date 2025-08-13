@@ -18,9 +18,9 @@ class DataImagesNHResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-photo';
 
-    protected static ?string $navigationLabel = 'Images Data NH';
+    protected static ?string $navigationLabel = 'Kho Ảnh & Video';
 
-    protected static ?string $navigationGroup = 'NH Management';
+    protected static ?string $navigationGroup = 'Nhà Hàng Hồ Bơi';
 
     public static function form(Form $form): Form
     {

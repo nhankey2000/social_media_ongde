@@ -19,12 +19,16 @@ use App\Http\Controllers\KhuVuonMaQuaiController;
 use App\Http\Controllers\SoTayChanNuoiController;
 use App\Http\Controllers\BanhXeoCoTuController;
 use App\Http\Controllers\DulieuTruyenThongController;
+use App\Http\Controllers\DulieuTruyenThongBXController;
 use App\Models\DataPost;
 use App\Models\ImagesData;
 use App\Models\DanhmucData;
 use App\Models\DataPostNH;
 use App\Models\DataImagesNH;
 use App\Models\DanhmucNHS;
+use App\Models\DataPostBX;
+use App\Models\DataImagesBX;
+use App\Models\DanhmucBX;
 
 /*
 |--------------------------------------------------------------------------
@@ -60,6 +64,7 @@ Route::get('/profile', [App\Http\Controllers\ProfileController::class, 'show']);
 Route::get('/zoo', [App\Http\Controllers\ZooController::class, 'show']);
 Route::get('/du-lieu-truyen-thong', [App\Http\Controllers\DulieuTruyenThongController::class, 'show']);
 Route::get('/du-lieu-truyen-thongNH', [App\Http\Controllers\DulieuTruyenThongNHController::class, 'show']);
+Route::get('/du-lieu-truyen-thongBX', [App\Http\Controllers\DulieuTruyenThongBXController::class, 'show']);
 // Night Hunters - Khu Vườn Ma Quái
 Route::get('/khu-vuon-ma-quai', [KhuVuonMaQuaiController::class, 'index'])->name('khuvuonmaquai');
 Route::get('/so-tay-chan-nuoi', [SoTayChanNuoiController::class, 'index'])->name('sotaychannuoi');
@@ -522,3 +527,187 @@ Route::get('/api/danhmuc-nhs/{id}', function ($id) {
     }
 });
 
+// API Routes cho Data Posts BX
+Route::get('/api/data-posts-bx', function () {
+    try {
+        $query = DataPostBX::query();
+
+        // Filter by type if provided
+        if (request()->has('type')) {
+            $query->where('type', request()->type);
+        }
+
+        $posts = $query->orderBy('created_at', 'desc')->get();
+
+        return response()->json([
+            'success' => true,
+            'data' => $posts
+        ]);
+    } catch (\Exception $e) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Lỗi tải dữ liệu: ' . $e->getMessage()
+        ], 500);
+    }
+});
+
+// API Routes cho Data Images BX
+Route::get('/api/data-images-bx', function () {
+    try {
+        $query = DataImagesBX::query();
+
+        // Filter by type if provided
+        if (request()->has('type')) {
+            $query->where('type', request()->type);
+        }
+
+        $images = $query->orderBy('created_at', 'desc')->get(); // Đã thêm timestamps cho DataImagesBX
+
+        return response()->json([
+            'success' => true,
+            'data' => $images
+        ]);
+    } catch (\Exception $e) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Lỗi tải dữ liệu: ' . $e->getMessage()
+        ], 500);
+    }
+});
+
+// API chi tiết Data Post BX
+Route::get('/api/data-posts-bx/{id}', function ($id) {
+    try {
+        $post = DataPostBX::findOrFail($id);
+
+        return response()->json([
+            'success' => true,
+            'data' => $post
+        ]);
+    } catch (\Exception $e) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Không tìm thấy bài viết'
+        ], 404);
+    }
+});
+
+// API chi tiết Data Images BX
+Route::get('/api/data-images-bx/{id}', function ($id) {
+    try {
+        $image = DataImagesBX::findOrFail($id);
+
+        return response()->json([
+            'success' => true,
+            'data' => $image
+        ]);
+    } catch (\Exception $e) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Không tìm thấy media'
+        ], 404);
+    }
+});
+
+// API lấy tất cả danh mục BX
+Route::get('/api/danhmuc-bxs', function () {
+    try {
+        $categories = DanhmucBX::orderBy('ten_danh_muc', 'asc')->get();
+
+        return response()->json([
+            'success' => true,
+            'data' => $categories
+        ]);
+    } catch (\Exception $e) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Lỗi tải dữ liệu: ' . $e->getMessage()
+        ], 500);
+    }
+});
+
+// API lấy bài viết theo danh mục BX
+Route::get('/api/danhmuc-bxs/{categoryId}/posts', function ($categoryId) {
+    try {
+        $query = DataPostBX::query();
+
+        if ($categoryId !== 'all') {
+            $query->where('id_danhmuc_data', $categoryId);
+        }
+
+        $posts = $query->orderBy('created_at', 'desc')->get();
+
+        return response()->json([
+            'success' => true,
+            'data' => $posts
+        ]);
+    } catch (\Exception $e) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Lỗi tải dữ liệu: ' . $e->getMessage()
+        ], 500);
+    }
+});
+
+// API lấy ảnh theo danh mục BX
+Route::get('/api/danhmuc-bxs/{categoryId}/images', function ($categoryId) {
+    try {
+        $query = DataImagesBX::where('type', 'image');
+
+        if ($categoryId !== 'all') {
+            $query->where('id_danhmuc_data', $categoryId);
+        }
+
+        $images = $query->orderBy('created_at', 'desc')->get(); // Đã thêm timestamps
+
+        return response()->json([
+            'success' => true,
+            'data' => $images
+        ]);
+    } catch (\Exception $e) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Lỗi tải dữ liệu: ' . $e->getMessage()
+        ], 500);
+    }
+});
+
+// API lấy video theo danh mục BX
+Route::get('/api/danhmuc-bxs/{categoryId}/videos', function ($categoryId) {
+    try {
+        $query = DataImagesBX::where('type', 'video');
+
+        if ($categoryId !== 'all') {
+            $query->where('id_danhmuc_data', $categoryId);
+        }
+
+        $videos = $query->orderBy('created_at', 'desc')->get(); // Đã thêm timestamps
+
+        return response()->json([
+            'success' => true,
+            'data' => $videos
+        ]);
+    } catch (\Exception $e) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Lỗi tải dữ liệu: ' . $e->getMessage()
+        ], 500);
+    }
+});
+
+// API lấy chi tiết danh mục BX
+Route::get('/api/danhmuc-bxs/{id}', function ($id) {
+    try {
+        $category = DanhmucBX::findOrFail($id);
+
+        return response()->json([
+            'success' => true,
+            'data' => $category
+        ]);
+    } catch (\Exception $e) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Không tìm thấy danh mục'
+        ], 404);
+    }
+});

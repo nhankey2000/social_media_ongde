@@ -2,10 +2,10 @@
 
 namespace App\Filament\Resources;
 
-use App\Filament\Resources\DataPostResource\Pages;
-use App\Models\DataPost;
-use App\Models\ImagesData;
-use App\Models\DanhmucData;
+use App\Filament\Resources\DataPostBXResource\Pages;
+use App\Models\DataPostBX;
+use App\Models\DataImagesBX;
+use App\Models\DanhmucBX;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -13,14 +13,15 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Support\Facades\Storage;
 
-class DataPostResource extends Resource
+class DataPostBXResource extends Resource
 {
-    protected static ?string $model = DataPost::class;
+    protected static ?string $model = DataPostBX::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-document-text';
+
     protected static ?string $navigationLabel = 'Kho Bài Viết';
 
-    protected static ?string $navigationGroup = 'LDL Ông Đề';
+    protected static ?string $navigationGroup = 'Bánh Xèo Cô Tư';
 
     public static function form(Form $form): Form
     {
@@ -40,8 +41,8 @@ class DataPostResource extends Resource
                     ->afterStateUpdated(fn (callable $set) => $set('files', [])),
 
                 Forms\Components\Select::make('id_danhmuc_data')
-                    ->label('Danh mục')
-                    ->options(DanhmucData::pluck('ten_danh_muc', 'id'))
+                    ->label('Danh mục BX')
+                    ->options(DanhmucBX::pluck('ten_danh_muc', 'id'))
                     ->searchable()
                     ->required()
                     ->createOptionForm([
@@ -50,9 +51,9 @@ class DataPostResource extends Resource
                             ->required()
                             ->maxLength(255),
                     ])
-                    ->createOptionAction(fn ($action) => $action->modalHeading('Thêm danh mục mới'))
+                    ->createOptionAction(fn ($action) => $action->modalHeading('Thêm danh mục BX mới'))
                     ->createOptionUsing(function (array $data) {
-                        $danhmuc = DanhmucData::create([
+                        $danhmuc = DanhmucBX::create([
                             'ten_danh_muc' => $data['ten_danh_muc'],
                         ]);
                         return $danhmuc->id;
@@ -65,7 +66,7 @@ class DataPostResource extends Resource
                 Forms\Components\FileUpload::make('files')
                     ->label('Upload Files')
                     ->multiple()
-                    ->directory('data-post-files')
+                    ->directory('data-post-bx-files') // Đổi thành thư mục riêng cho BX
                     ->disk('public')
                     ->required()
                     ->maxFiles(20)
@@ -95,9 +96,8 @@ class DataPostResource extends Resource
                     ->visible(fn (callable $get): bool => !empty($get('type')))
                     ->columnSpanFull(),
 
-                // Hidden field để lưu existing files cho edit
                 Forms\Components\Hidden::make('existing_files')
-                    ->visible(fn (?DataPost $record): bool => $record !== null),
+                    ->visible(fn (?DataPostBX $record): bool => $record !== null),
             ]);
     }
 
@@ -112,8 +112,8 @@ class DataPostResource extends Resource
                     ->searchable()
                     ->sortable(),
 
-                Tables\Columns\TextColumn::make('danhmucData.ten_danh_muc')
-                    ->label('Danh mục')
+                Tables\Columns\TextColumn::make('danhmucBX.ten_danh_muc')
+                    ->label('Danh mục BX')
                     ->searchable()
                     ->sortable(),
 
@@ -126,8 +126,8 @@ class DataPostResource extends Resource
                 Tables\Columns\TextColumn::make('content')
                     ->limit(50),
 
-                Tables\Columns\TextColumn::make('imagesData_count')
-                    ->counts('imagesData')
+                Tables\Columns\TextColumn::make('dataImagesBX_count')
+                    ->counts('dataImagesBX') // Cập nhật thành dataImagesBX
                     ->label('Files')
                     ->badge()
                     ->color('warning'),
@@ -143,8 +143,8 @@ class DataPostResource extends Resource
                         'image' => 'Image',
                     ]),
                 Tables\Filters\SelectFilter::make('id_danhmuc_data')
-                    ->label('Danh mục')
-                    ->options(DanhmucData::pluck('ten_danh_muc', 'id')),
+                    ->label('Danh mục BX')
+                    ->options(DanhmucBX::pluck('ten_danh_muc', 'id')),
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),
@@ -167,9 +167,9 @@ class DataPostResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListDataPosts::route('/'),
-            'create' => Pages\CreateDataPost::route('/create'),
-            'edit' => Pages\EditDataPost::route('/{record}/edit'),
+            'index' => Pages\ListDataPostBX::route('/'),
+            'create' => Pages\CreateDataPostBX::route('/create'),
+            'edit' => Pages\EditDataPostBX::route('/{record}/edit'),
         ];
     }
 
@@ -178,12 +178,11 @@ class DataPostResource extends Resource
     {
         if (!empty($files)) {
             foreach ($files as $file) {
-                ImagesData::create([
+                DataImagesBX::create([ // Cập nhật thành DataImagesBX
                     'post_id' => $post->id,
                     'type' => $post->type,
                     'id_danhmuc_data' => $post->id_danhmuc_data,
                     'url' => Storage::url($file),
-                    'created_at' => now(),
                 ]);
             }
         }
@@ -192,17 +191,16 @@ class DataPostResource extends Resource
     public static function updateFilesInImagesData($post, $files)
     {
         // Xóa files cũ
-        ImagesData::where('post_id', $post->id)->delete();
+        DataImagesBX::where('post_id', $post->id)->delete(); // Cập nhật thành DataImagesBX
 
         // Lưu files mới
         if (!empty($files)) {
             foreach ($files as $file) {
-                ImagesData::create([
+                DataImagesBX::create([ // Cập nhật thành DataImagesBX
                     'post_id' => $post->id,
                     'type' => $post->type,
                     'id_danhmuc_data' => $post->id_danhmuc_data,
                     'url' => Storage::url($file),
-                    'created_at' => now(),
                 ]);
             }
         }
@@ -210,8 +208,8 @@ class DataPostResource extends Resource
 
     public static function getExistingFiles($post)
     {
-        return ImagesData::where('post_id', $post->id)
-            ->pluck('url')
+        return DataImagesBX::where('post_id', $post->id) // Cập nhật thành DataImagesBX
+        ->pluck('url')
             ->map(function ($url) {
                 return str_replace('/storage/', '', $url);
             })
