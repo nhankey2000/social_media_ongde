@@ -17,6 +17,7 @@ class DataPost extends Model
         'title',
         'content',
         'type',
+
         'id_danhmuc_data', // Thêm cột mới
     ];
 

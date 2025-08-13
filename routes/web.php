@@ -22,6 +22,10 @@ use App\Http\Controllers\DulieuTruyenThongController;
 use App\Models\DataPost;
 use App\Models\ImagesData;
 use App\Models\DanhmucData;
+use App\Models\DataPostNH;
+use App\Models\DataImagesNH;
+use App\Models\DanhmucNHS;
+
 /*
 |--------------------------------------------------------------------------
 | Web Routes
@@ -55,6 +59,7 @@ Route::delete('/keys/{id}', [ActivationKeyController::class, 'destroy']);
 Route::get('/profile', [App\Http\Controllers\ProfileController::class, 'show']);
 Route::get('/zoo', [App\Http\Controllers\ZooController::class, 'show']);
 Route::get('/du-lieu-truyen-thong', [App\Http\Controllers\DulieuTruyenThongController::class, 'show']);
+Route::get('/du-lieu-truyen-thongNH', [App\Http\Controllers\DulieuTruyenThongNHController::class, 'show']);
 // Night Hunters - Khu Vườn Ma Quái
 Route::get('/khu-vuon-ma-quai', [KhuVuonMaQuaiController::class, 'index'])->name('khuvuonmaquai');
 Route::get('/so-tay-chan-nuoi', [SoTayChanNuoiController::class, 'index'])->name('sotaychannuoi');
@@ -328,3 +333,192 @@ Route::get('/api/categories/{id}', function ($id) {
         ], 404);
     }
 });
+
+// Thêm vào đầu file routes/web.php hoặc routes/api.php
+
+
+// API Routes cho Data Posts NH
+Route::get('/api/data-posts-nh', function () {
+    try {
+        $query = DataPostNH::query();
+
+        // Filter by type if provided
+        if (request()->has('type')) {
+            $query->where('type', request()->type);
+        }
+
+        $posts = $query->orderBy('created_at', 'desc')->get();
+
+        return response()->json([
+            'success' => true,
+            'data' => $posts
+        ]);
+    } catch (\Exception $e) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Lỗi tải dữ liệu: ' . $e->getMessage()
+        ], 500);
+    }
+});
+
+// API Routes cho Data Images NH
+Route::get('/api/data-images-nh', function () {
+    try {
+        $query = DataImagesNH::query();
+
+        // Filter by type if provided
+        if (request()->has('type')) {
+            $query->where('type', request()->type);
+        }
+
+        $images = $query->orderBy('id', 'desc')->get(); // Sử dụng 'id' thay vì 'created_at' vì DataImagesNH không có timestamps
+
+        return response()->json([
+            'success' => true,
+            'data' => $images
+        ]);
+    } catch (\Exception $e) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Lỗi tải dữ liệu: ' . $e->getMessage()
+        ], 500);
+    }
+});
+
+// API chi tiết Data Post NH
+Route::get('/api/data-posts-nh/{id}', function ($id) {
+    try {
+        $post = DataPostNH::findOrFail($id);
+
+        return response()->json([
+            'success' => true,
+            'data' => $post
+        ]);
+    } catch (\Exception $e) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Không tìm thấy bài viết'
+        ], 404);
+    }
+});
+
+// API chi tiết Data Images NH
+Route::get('/api/data-images-nh/{id}', function ($id) {
+    try {
+        $image = DataImagesNH::findOrFail($id);
+
+        return response()->json([
+            'success' => true,
+            'data' => $image
+        ]);
+    } catch (\Exception $e) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Không tìm thấy media'
+        ], 404);
+    }
+});
+
+// API lấy tất cả danh mục NH
+Route::get('/api/danhmuc-nhs', function () {
+    try {
+        $categories = DanhmucNHS::orderBy('ten_danh_muc', 'asc')->get();
+
+        return response()->json([
+            'success' => true,
+            'data' => $categories
+        ]);
+    } catch (\Exception $e) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Lỗi tải dữ liệu: ' . $e->getMessage()
+        ], 500);
+    }
+});
+
+// API lấy bài viết theo danh mục NH
+Route::get('/api/danhmuc-nhs/{categoryId}/posts', function ($categoryId) {
+    try {
+        $query = DataPostNH::query();
+
+        if ($categoryId !== 'all') {
+            $query->where('id_danhmuc_data', $categoryId);
+        }
+
+        $posts = $query->orderBy('created_at', 'desc')->get();
+
+        return response()->json([
+            'success' => true,
+            'data' => $posts
+        ]);
+    } catch (\Exception $e) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Lỗi tải dữ liệu: ' . $e->getMessage()
+        ], 500);
+    }
+});
+
+// API lấy ảnh theo danh mục NH
+Route::get('/api/danhmuc-nhs/{categoryId}/images', function ($categoryId) {
+    try {
+        $query = DataImagesNH::where('type', 'image');
+
+        if ($categoryId !== 'all') {
+            $query->where('id_danhmuc_data', $categoryId);
+        }
+
+        $images = $query->orderBy('id', 'desc')->get(); // Sử dụng 'id' thay vì 'created_at'
+
+        return response()->json([
+            'success' => true,
+            'data' => $images
+        ]);
+    } catch (\Exception $e) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Lỗi tải dữ liệu: ' . $e->getMessage()
+        ], 500);
+    }
+});
+
+// API lấy video theo danh mục NH
+Route::get('/api/danhmuc-nhs/{categoryId}/videos', function ($categoryId) {
+    try {
+        $query = DataImagesNH::where('type', 'video');
+
+        if ($categoryId !== 'all') {
+            $query->where('id_danhmuc_data', $categoryId);
+        }
+
+        $videos = $query->orderBy('id', 'desc')->get(); // Sử dụng 'id' thay vì 'created_at'
+
+        return response()->json([
+            'success' => true,
+            'data' => $videos
+        ]);
+    } catch (\Exception $e) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Lỗi tải dữ liệu: ' . $e->getMessage()
+        ], 500);
+    }
+});
+
+// API lấy chi tiết danh mục NH
+Route::get('/api/danhmuc-nhs/{id}', function ($id) {
+    try {
+        $category = DanhmucNHS::findOrFail($id);
+
+        return response()->json([
+            'success' => true,
+            'data' => $category
+        ]);
+    } catch (\Exception $e) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Không tìm thấy danh mục'
+        ], 404);
+    }
+});
+

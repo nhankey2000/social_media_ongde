@@ -17,6 +17,7 @@ class ImagesData extends Model
     protected $fillable = [
         'post_id',
         'type',
+
         'url',
         'id_danhmuc_data', // Thêm cột mới
     ];

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Hệ Sinh Thái Ông Đề</title>
+    <title>Nhà Hàng Hồ Bơi Hồng Phát</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
     <style>
         * {
@@ -535,11 +535,11 @@
 <div class="container">
     <div class="logo-section">
         <div class="logo" style="width: 160px; height: 96px; margin: 0 auto 20px; border-radius: 20px; background: #ffffff; display: flex; align-items: center; justify-content: center; box-shadow: 0 16px 32px rgba(0, 0, 0, 0.1);">
-            <img src="images/logo.png" alt="Logo Ông Đề" style="width: 128px; height: 64px; border-radius: 12px;" onerror="this.style.display='none'">
+            <img src="images/logo.png" alt="Logo Nhà Hàng" style="width: 128px; height: 64px; border-radius: 12px;" onerror="this.style.display='none'">
         </div>
     </div>
 
-    <h1 class="header-title">🌟 Hệ Thống Quản Lý Nội Dung</h1>
+    <h1 class="header-title">🍽️ Nhà Hàng Hồ Bơi Hồng Phát</h1>
 
     <div class="menu-section">
         <div class="tab-menu">
@@ -573,7 +573,7 @@
     </div>
 
     <h2 class="main-title" id="mainTitle">Nội Dung Bài Viết</h2>
-    <p class="subtitle" id="subtitle">Quản lý các bài viết và nội dung</p>
+    <p class="subtitle" id="subtitle">Quản lý các bài viết và nội dung nhà hàng</p>
 
     <div id="contentArea">
         <div class="loading">⏳ Đang tải dữ liệu...</div>
@@ -600,7 +600,7 @@
     <div class="download-status" id="downloadStatus"></div>
 
     <div class="footer">
-        <p class="footer-text">© 2025 Làng Du Lịch Sinh Thái Ông Đề. Tất cả quyền được bảo lưu.</p>
+        <p class="footer-text">© 2025 Nhà Hàng Hồ Bơi Hồng Phát. Tất cả quyền được bảo lưu.</p>
         <p class="footer-text">Công Ty TNHH Làng Du Lịch Sinh Thái Ông Đề.</p>
         <p class="footer-text">Địa chỉ: Số 168-AB1, Đường Xuân Thuỷ, Khu Dân Cư Hồng Phát, Phường An Bình, Thành Phố Cần Thơ, Việt Nam.</p>
         <p class="footer-text">Mã Số Thuế: 1801218923 | Hotline: 0931 852 113</p>
@@ -614,7 +614,7 @@
     let currentCategory = 'all';
     let currentData = [];
 
-    // API endpoints
+    // API endpoints - Updated for NH tables
     const API_BASE_URL = window.location.origin;
 
     // Utility functions
@@ -648,10 +648,10 @@
         return element;
     }
 
-    // Load categories
+    // Load categories - Updated for NH tables
     async function loadCategories() {
         try {
-            const response = await fetch(`${API_BASE_URL}/api/categories`);
+            const response = await fetch(`${API_BASE_URL}/api/danhmuc-nhs`);
             const data = await response.json();
 
             if (data.success && data.data) {
@@ -712,7 +712,7 @@
         }
     }
 
-    // Select content with category
+    // Select content with category - Updated for NH tables
     async function selectContent(type, categoryId = 'all', categoryName = 'Tất Cả') {
         currentType = type;
         currentCategory = categoryId;
@@ -744,7 +744,7 @@
         await loadData(type, categoryId);
     }
 
-    // Load data with category filter
+    // Load data with category filter - Updated for NH tables
     async function loadData(type, categoryId = 'all') {
         const contentArea = safeGetElement('contentArea');
         if (!contentArea) return;
@@ -755,12 +755,12 @@
             let url;
             if (categoryId === 'all') {
                 if (type === 'posts') {
-                    url = `${API_BASE_URL}/api/data-posts`;
+                    url = `${API_BASE_URL}/api/data-posts-nh`;
                 } else {
-                    url = `${API_BASE_URL}/api/images-data?type=${type === 'images' ? 'image' : 'video'}`;
+                    url = `${API_BASE_URL}/api/data-images-nh?type=${type === 'images' ? 'image' : 'video'}`;
                 }
             } else {
-                url = `${API_BASE_URL}/api/categories/${categoryId}/${type}`;
+                url = `${API_BASE_URL}/api/danhmuc-nhs/${categoryId}/${type}`;
             }
 
             const response = await fetch(url);
