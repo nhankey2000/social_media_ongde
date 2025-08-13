@@ -61,6 +61,7 @@ Route::delete('/keys/{id}', [ActivationKeyController::class, 'destroy']);
 
 // Profile and Zoo
 Route::get('/profile', [App\Http\Controllers\ProfileController::class, 'show']);
+Route::get('/truyen-thong', [App\Http\Controllers\TruyenThongController::class, 'show']);
 Route::get('/zoo', [App\Http\Controllers\ZooController::class, 'show']);
 Route::get('/du-lieu-truyen-thong', [App\Http\Controllers\DulieuTruyenThongController::class, 'show']);
 Route::get('/du-lieu-truyen-thongNH', [App\Http\Controllers\DulieuTruyenThongNHController::class, 'show']);
