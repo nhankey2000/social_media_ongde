@@ -29,7 +29,8 @@ use App\Models\DanhmucNHS;
 use App\Models\DataPostBX;
 use App\Models\DataImagesBX;
 use App\Models\DanhmucBX;
-
+use App\Models\ImageMenu;
+use App\Models\MenuCategory;
 /*
 |--------------------------------------------------------------------------
 | Web Routes
@@ -66,6 +67,7 @@ Route::get('/zoo', [App\Http\Controllers\ZooController::class, 'show']);
 Route::get('/du-lieu-truyen-thong', [App\Http\Controllers\DulieuTruyenThongController::class, 'show']);
 Route::get('/du-lieu-truyen-thongNH', [App\Http\Controllers\DulieuTruyenThongNHController::class, 'show']);
 Route::get('/du-lieu-truyen-thongBX', [App\Http\Controllers\DulieuTruyenThongBXController::class, 'show']);
+Route::get('/menu-ong-de', [App\Http\Controllers\MenuOngDeController::class, 'show']);
 // Night Hunters - Khu Vườn Ma Quái
 Route::get('/khu-vuon-ma-quai', [KhuVuonMaQuaiController::class, 'index'])->name('khuvuonmaquai');
 Route::get('/so-tay-chan-nuoi', [SoTayChanNuoiController::class, 'index'])->name('sotaychannuoi');
@@ -710,5 +712,50 @@ Route::get('/api/danhmuc-bxs/{id}', function ($id) {
             'success' => false,
             'message' => 'Không tìm thấy danh mục'
         ], 404);
+    }
+});
+Route::get('/api/images-menu-ongde', function (Request $request) {
+    try {
+        $category = $request->query('category'); // Lấy tham số category từ query (e.g., 'khai-vi')
+
+        // Tìm danh mục theo name hoặc slug
+        $menuCategory = MenuCategory::where('name', $category)
+            ->orWhere('slug', $category)
+            ->first();
+
+        if (!$menuCategory && $category !== 'all') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Danh mục không tồn tại'
+            ], 404);
+        }
+
+        $query = ImageMenu::query();
+
+        // Nếu category không phải 'all', lọc theo danh mục
+        if ($category !== 'all') {
+            $query->where('menu_category_id', $menuCategory->id);
+        }
+
+        // Lấy danh sách ảnh, sắp xếp theo thời gian tạo mới nhất
+        $images = $query->orderBy('created_at', 'desc')->get()->map(function ($image) {
+            return [
+                'id' => $image->id,
+                'url' => $image->image_url,
+                'created_at' => $image->created_at->toDateTimeString(),
+                'category' => $image->menuCategory ? $image->menuCategory->name : null,
+                'name' => $image->name ?? 'Unnamed Dish'
+            ];
+        });
+
+        return response()->json([
+            'success' => true,
+            'data' => $images
+        ]);
+    } catch (\Exception $e) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Lỗi tải dữ liệu: ' . $e->getMessage()
+        ], 500);
     }
 });
