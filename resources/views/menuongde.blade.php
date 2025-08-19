@@ -546,7 +546,7 @@
         <div class="tab-menu">
             <button class="menu-button active" onclick="selectContent('khai-vi')">Khai Vị</button>
             <button class="menu-button" onclick="selectContent('mon-chinh')">Món Chính</button>
-            <button class="menu-button" onclick="selectContent('mon-kem')">Món Kèm</button>
+            <button class="menu-button" onclick="selectContent('mon-kem')">Món Thêm</button>
             <button class="menu-button" onclick="selectContent('lau')">Lẩu</button>
             <button class="menu-button" onclick="selectContent('trang-mieng')">Tráng Miệng</button>
             <button class="menu-button" onclick="selectContent('thuc-uong')">Thức Uống</button>
