@@ -548,7 +548,7 @@
             <button class="menu-button" onclick="selectContent('mon-chinh')">Món Chính</button>
             <button class="menu-button" onclick="selectContent('mon-kem')">Món Thêm</button>
             <button class="menu-button" onclick="selectContent('lau')">Lẩu</button>
-            <button class="menu-button" onclick="selectContent('trang-mieng')">Tráng Miệng</button>
+            <button class="menu-button" onclick="selectContent('trang-mieng')">Theo Thời Giá</button>
             <button class="menu-button" onclick="selectContent('thuc-uong')">Thức Uống</button>
             <button class="menu-button" onclick="selectContent('combo-set')">Combo/Set</button>
             <button class="menu-button" onclick="selectContent('mon-dac-biet')">Món Đặc Biệt</button>
