@@ -300,6 +300,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
+            touch-action: none; /* Prevent default touch behaviors */
         }
 
         .zoom-container.dragging {
@@ -733,6 +734,12 @@
     let imagePosition = { x: 0, y: 0 };
     let currentImage = null;
 
+    // Pinch zoom variables
+    let isPinching = false;
+    let initialPinchDistance = 0;
+    let initialZoom = 1;
+    let pinchCenter = { x: 0, y: 0 };
+
     // API endpoints
     const API_BASE_URL = window.location.origin;
 
@@ -755,10 +762,106 @@
         return element;
     }
 
+    // Pinch zoom functions
+    function getPinchDistance(touch1, touch2) {
+        const dx = touch1.clientX - touch2.clientX;
+        const dy = touch1.clientY - touch2.clientY;
+        return Math.sqrt(dx * dx + dy * dy);
+    }
+
+    function getPinchCenter(touch1, touch2) {
+        return {
+            x: (touch1.clientX + touch2.clientX) / 2,
+            y: (touch1.clientY + touch2.clientY) / 2
+        };
+    }
+
+    function handleTouchStart(e) {
+        if (e.touches.length === 2) {
+            // Pinch zoom start
+            isPinching = true;
+            isDragging = false;
+
+            const touch1 = e.touches[0];
+            const touch2 = e.touches[1];
+
+            initialPinchDistance = getPinchDistance(touch1, touch2);
+            initialZoom = currentZoom;
+            pinchCenter = getPinchCenter(touch1, touch2);
+
+            // Get container rect for relative positioning
+            const container = e.currentTarget;
+            const rect = container.getBoundingClientRect();
+            pinchCenter.x -= rect.left;
+            pinchCenter.y -= rect.top;
+
+            e.preventDefault();
+        } else if (e.touches.length === 1 && !isPinching) {
+            // Single touch drag start
+            startDrag(e);
+        }
+    }
+
+    function handleTouchMove(e) {
+        if (e.touches.length === 2 && isPinching) {
+            // Pinch zoom
+            const touch1 = e.touches[0];
+            const touch2 = e.touches[1];
+
+            const currentDistance = getPinchDistance(touch1, touch2);
+            const scale = currentDistance / initialPinchDistance;
+
+            let newZoom = initialZoom * scale;
+            newZoom = Math.max(minZoom, Math.min(maxZoom, newZoom));
+
+            // Calculate zoom center offset
+            const container = e.currentTarget;
+            const rect = container.getBoundingClientRect();
+            const centerX = rect.width / 2;
+            const centerY = rect.height / 2;
+
+            // Adjust position based on zoom center
+            const zoomChange = newZoom / currentZoom;
+            const offsetX = (pinchCenter.x - centerX) * (zoomChange - 1);
+            const offsetY = (pinchCenter.y - centerY) * (zoomChange - 1);
+
+            imagePosition.x -= offsetX / currentZoom;
+            imagePosition.y -= offsetY / currentZoom;
+
+            currentZoom = newZoom;
+            applyZoom();
+
+            e.preventDefault();
+        } else if (e.touches.length === 1 && isDragging && !isPinching) {
+            // Single touch drag
+            drag(e);
+        }
+    }
+
+    function handleTouchEnd(e) {
+        if (e.touches.length === 0) {
+            // All touches ended
+            isPinching = false;
+            endDrag(e);
+        } else if (e.touches.length === 1 && isPinching) {
+            // One finger lifted during pinch, switch to drag mode
+            isPinching = false;
+            if (currentZoom > 1) {
+                const touch = e.touches[0];
+                dragStart = { x: touch.clientX - imagePosition.x, y: touch.clientY - imagePosition.y };
+                isDragging = true;
+                const container = e.currentTarget;
+                container.classList.add('dragging');
+            }
+        }
+    }
+
     // Zoom functions
     function initializeZoom() {
         currentZoom = 1;
         imagePosition = { x: 0, y: 0 };
+        isPinching = false;
+        isDragging = false;
         updateZoomDisplay();
     }
 
@@ -809,7 +912,7 @@
 
     // Mouse/Touch event handlers for dragging
     function startDrag(e) {
-        if (currentZoom <= 1) return;
+        if (currentZoom <= 1 || isPinching) return;
 
         isDragging = true;
         const container = e.currentTarget;
@@ -824,7 +927,7 @@
     }
 
     function drag(e) {
-        if (!isDragging || currentZoom <= 1) return;
+        if (!isDragging || currentZoom <= 1 || isPinching) return;
 
         const clientX = e.type === 'touchmove' ? e.touches[0].clientX : e.clientX;
         const clientY = e.type === 'touchmove' ? e.touches[0].clientY : e.clientY;
@@ -1068,9 +1171,10 @@
             onmousemove="drag(event)"
             onmouseup="endDrag(event)"
             onmouseleave="endDrag(event)"
-            ontouchstart="startDrag(event)"
-            ontouchmove="drag(event)"
-            ontouchend="endDrag(event)"
+            ontouchstart="handleTouchStart(event)"
+            ontouchmove="handleTouchMove(event)"
+            ontouchend="handleTouchEnd(event)"
+            ontouchcancel="handleTouchEnd(event)"
             onwheel="handleWheel(event)">
             <img src="${url}"
             alt="Image Preview"
