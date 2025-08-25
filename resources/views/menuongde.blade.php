@@ -286,16 +286,100 @@
             width: 100%;
             height: 100%;
             min-height: 200px;
+            position: relative;
+            overflow: hidden;
         }
 
-        .media-modal-content img {
+        /* Zoom Container */
+        .zoom-container {
+            position: relative;
+            width: 100%;
+            height: 90vh;
+            overflow: hidden;
+            cursor: grab;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .zoom-container.dragging {
+            cursor: grabbing;
+        }
+
+        .zoomable-image {
             max-width: 100%;
-            max-height: 90vh;
+            max-height: 100%;
             width: auto;
             height: auto;
             object-fit: contain;
             border-radius: 8px;
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+            transition: transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            transform-origin: center center;
+            user-select: none;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+        }
+
+        /* Zoom Controls */
+        .zoom-controls {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            z-index: 20;
+        }
+
+        .zoom-btn {
+            width: 45px;
+            height: 45px;
+            background: rgba(0, 0, 0, 0.7);
+            border: none;
+            color: white;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 1.2rem;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .zoom-btn:hover {
+            background: rgba(0, 102, 255, 0.9);
+            transform: scale(1.1);
+            box-shadow: 0 4px 15px rgba(0, 102, 255, 0.4);
+        }
+
+        .zoom-btn:active {
+            transform: scale(0.95);
+        }
+
+        .zoom-btn:disabled {
+            background: rgba(0, 0, 0, 0.3);
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        /* Zoom Level Indicator */
+        .zoom-level {
+            position: absolute;
+            bottom: 60px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            z-index: 20;
+            min-width: 80px;
+            text-align: center;
         }
 
         .nav-button {
@@ -474,8 +558,8 @@
                 max-height: 300px;
             }
 
-            .media-modal-content img {
-                max-height: 80vh;
+            .zoom-container {
+                height: 80vh;
             }
 
             .nav-button {
@@ -492,8 +576,25 @@
                 right: 15px;
             }
 
+            .zoom-controls {
+                top: 60px;
+                left: 10px;
+            }
+
+            .zoom-btn {
+                width: 40px;
+                height: 40px;
+                font-size: 1rem;
+            }
+
             .image-counter {
                 bottom: 15px;
+                font-size: 0.8rem;
+                padding: 6px 12px;
+            }
+
+            .zoom-level {
+                bottom: 50px;
                 font-size: 0.8rem;
                 padding: 6px 12px;
             }
@@ -528,6 +629,11 @@
             .image-item img {
                 min-height: 120px;
                 max-height: 250px;
+            }
+
+            .zoom-controls {
+                top: 50px;
+                left: 5px;
             }
         }
     </style>
@@ -594,7 +700,7 @@
         </div>
     </div>
 
-    <!-- Modal cho xem ảnh -->
+    <!-- Modal cho xem ảnh với zoom -->
     <div class="modal" id="mediaModal" onclick="closeModalOnOutside(event)">
         <div class="modal-content" onclick="event.stopPropagation()">
             <span class="close-button" onclick="closeModal('mediaModal')">&times;</span>
@@ -618,6 +724,15 @@
     let currentPage = 1;
     let itemsPerPage = 4;
 
+    // Zoom variables
+    let currentZoom = 1;
+    let minZoom = 0.5;
+    let maxZoom = 5;
+    let isDragging = false;
+    let dragStart = { x: 0, y: 0 };
+    let imagePosition = { x: 0, y: 0 };
+    let currentImage = null;
+
     // API endpoints
     const API_BASE_URL = window.location.origin;
 
@@ -638,6 +753,106 @@
             console.warn(`Element with ID '${id}' not found`);
         }
         return element;
+    }
+
+    // Zoom functions
+    function initializeZoom() {
+        currentZoom = 1;
+        imagePosition = { x: 0, y: 0 };
+        updateZoomDisplay();
+    }
+
+    function zoomIn() {
+        if (currentZoom < maxZoom) {
+            currentZoom = Math.min(currentZoom * 1.5, maxZoom);
+            applyZoom();
+        }
+    }
+
+    function zoomOut() {
+        if (currentZoom > minZoom) {
+            currentZoom = Math.max(currentZoom / 1.5, minZoom);
+            applyZoom();
+        }
+    }
+
+    function resetZoom() {
+        currentZoom = 1;
+        imagePosition = { x: 0, y: 0 };
+        applyZoom();
+    }
+
+    function applyZoom() {
+        if (currentImage) {
+            currentImage.style.transform = `scale(${currentZoom}) translate(${imagePosition.x}px, ${imagePosition.y}px)`;
+            updateZoomDisplay();
+
+            // Disable/enable zoom buttons
+            const zoomInBtn = document.querySelector('.zoom-in');
+            const zoomOutBtn = document.querySelector('.zoom-out');
+
+            if (zoomInBtn) {
+                zoomInBtn.disabled = currentZoom >= maxZoom;
+            }
+            if (zoomOutBtn) {
+                zoomOutBtn.disabled = currentZoom <= minZoom;
+            }
+        }
+    }
+
+    function updateZoomDisplay() {
+        const zoomLevel = document.querySelector('.zoom-level');
+        if (zoomLevel) {
+            zoomLevel.textContent = `${Math.round(currentZoom * 100)}%`;
+        }
+    }
+
+    // Mouse/Touch event handlers for dragging
+    function startDrag(e) {
+        if (currentZoom <= 1) return;
+
+        isDragging = true;
+        const container = e.currentTarget;
+        container.classList.add('dragging');
+
+        const clientX = e.type === 'touchstart' ? e.touches[0].clientX : e.clientX;
+        const clientY = e.type === 'touchstart' ? e.touches[0].clientY : e.clientY;
+
+        dragStart = { x: clientX - imagePosition.x, y: clientY - imagePosition.y };
+
+        e.preventDefault();
+    }
+
+    function drag(e) {
+        if (!isDragging || currentZoom <= 1) return;
+
+        const clientX = e.type === 'touchmove' ? e.touches[0].clientX : e.clientX;
+        const clientY = e.type === 'touchmove' ? e.touches[0].clientY : e.clientY;
+
+        imagePosition.x = clientX - dragStart.x;
+        imagePosition.y = clientY - dragStart.y;
+
+        applyZoom();
+        e.preventDefault();
+    }
+
+    function endDrag(e) {
+        if (!isDragging) return;
+
+        isDragging = false;
+        const container = e.currentTarget;
+        container.classList.remove('dragging');
+    }
+
+    // Wheel zoom
+    function handleWheel(e) {
+        e.preventDefault();
+
+        if (e.deltaY < 0) {
+            zoomIn();
+        } else {
+            zoomOut();
+        }
     }
 
     // Select content
@@ -800,7 +1015,7 @@
         });
     }
 
-    // View media với navigation
+    // View media với navigation và zoom
     function viewMedia(url, index = 0) {
         const modal = safeGetElement('mediaModal');
         const content = safeGetElement('mediaModalContent');
@@ -808,6 +1023,7 @@
         if (!modal || !content) return;
 
         currentImageIndex = index;
+        initializeZoom();
 
         // Thêm loading state
         content.innerHTML = `
@@ -826,36 +1042,74 @@
         img.onload = function() {
             content.innerHTML = `
                 <div class="media-modal-content">
-                    ${currentData.length > 1 ? `
+                    <!-- Zoom Controls -->
+            <div class="zoom-controls">
+            <button class="zoom-btn zoom-in" onclick="zoomIn()" title="Phóng to">
+            <i class="fas fa-plus"></i>
+            </button>
+            <button class="zoom-btn zoom-out" onclick="zoomOut()" title="Thu nhỏ">
+            <i class="fas fa-minus"></i>
+            </button>
+            <button class="zoom-btn zoom-reset" onclick="resetZoom()" title="Kích thước gốc">
+            <i class="fas fa-expand-arrows-alt"></i>
+            </button>
+            </div>
+
+                <!-- Navigation buttons -->
+            ${currentData.length > 1 ? `
                         <button class="nav-button nav-prev" onclick="navigateImage(-1)" title="Ảnh trước">
                             <i class="fas fa-chevron-left"></i>
                         </button>
                     ` : ''}
 
-                    <img src="${url}" alt="Image Preview" style="animation: fadeIn 0.3s ease;">
+                <!-- Zoom Container -->
+            <div class="zoom-container"
+            onmousedown="startDrag(event)"
+            onmousemove="drag(event)"
+            onmouseup="endDrag(event)"
+            onmouseleave="endDrag(event)"
+            ontouchstart="startDrag(event)"
+            ontouchmove="drag(event)"
+            ontouchend="endDrag(event)"
+            onwheel="handleWheel(event)">
+            <img src="${url}"
+            alt="Image Preview"
+            class="zoomable-image"
+            style="animation: fadeIn 0.3s ease;"
+            draggable="false">
+            </div>
 
-                    ${currentData.length > 1 ? `
+            ${currentData.length > 1 ? `
                         <button class="nav-button nav-next" onclick="navigateImage(1)" title="Ảnh sau">
                             <i class="fas fa-chevron-right"></i>
                         </button>
                     ` : ''}
 
-                    ${currentData.length > 1 ? `
+                <!-- Zoom Level Indicator -->
+            <div class="zoom-level">100%</div>
+
+                <!-- Image Counter -->
+            ${currentData.length > 1 ? `
                         <div class="image-counter">
                             ${currentImageIndex + 1} / ${currentData.length}
                         </div>
                     ` : ''}
-                </div>
+            </div>
             `;
+
+            // Set current image reference for zoom functions
+            currentImage = content.querySelector('.zoomable-image');
+            initializeZoom();
         };
+
         img.onerror = function() {
             content.innerHTML = `
-                <div class="media-modal-content">
-                    <div style="text-align: center; color: #666; padding: 40px;">
-                        <i class="fas fa-exclamation-triangle" style="font-size: 3rem; margin-bottom: 20px; color: #ff6b6b;"></i>
-                        <p>Không thể tải ảnh</p>
-                    </div>
-                </div>
+            <div class="media-modal-content">
+            <div style="text-align: center; color: #666; padding: 40px;">
+            <i class="fas fa-exclamation-triangle" style="font-size: 3rem; margin-bottom: 20px; color: #ff6b6b;"></i>
+            <p>Không thể tải ảnh</p>
+            </div>
+            </div>
             `;
         };
         img.src = url;
@@ -886,6 +1140,12 @@
             setTimeout(() => {
                 modal.style.display = 'none';
                 modal.style.animation = '';
+
+                // Reset zoom when closing modal
+                if (modalId === 'mediaModal') {
+                    initializeZoom();
+                    currentImage = null;
+                }
             }, 300);
         }
     }
@@ -897,7 +1157,7 @@
         }
     }
 
-    // Thêm keyboard support để đóng modal bằng ESC và navigation
+    // Keyboard support
     document.addEventListener('keydown', function(event) {
         const mediaModal = safeGetElement('mediaModal');
         const welcomeModal = safeGetElement('welcomeModal');
@@ -910,14 +1170,31 @@
             }
         }
 
-        // Navigation với arrow keys khi modal ảnh đang mở
+        // Navigation và zoom với keyboard khi modal ảnh đang mở
         if (mediaModal && mediaModal.style.display === 'flex') {
-            if (event.key === 'ArrowLeft') {
-                event.preventDefault();
-                navigateImage(-1);
-            } else if (event.key === 'ArrowRight') {
-                event.preventDefault();
-                navigateImage(1);
+            switch(event.key) {
+                case 'ArrowLeft':
+                    event.preventDefault();
+                    navigateImage(-1);
+                    break;
+                case 'ArrowRight':
+                    event.preventDefault();
+                    navigateImage(1);
+                    break;
+                case '+':
+                case '=':
+                    event.preventDefault();
+                    zoomIn();
+                    break;
+                case '-':
+                case '_':
+                    event.preventDefault();
+                    zoomOut();
+                    break;
+                case '0':
+                    event.preventDefault();
+                    resetZoom();
+                    break;
             }
         }
     });
