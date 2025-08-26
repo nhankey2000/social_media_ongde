@@ -279,7 +279,7 @@ class FacebookAccountResource extends Resource
                                 $platform = Platform::find($record->platform_id);
 
                                 if ($platform->id === 3) { // YouTube (platform_id = 3)
-                                    return redirect()->away('http://social.ongde,vn/youtube/auth');
+                                    return redirect()->away('https://social.ongde,vn/youtube/auth');
                                 } elseif ($platform->name === 'Facebook') {
                                     $facebookService = new FacebookService();
                                     $tempPlatformAccount = new PlatformAccount([
