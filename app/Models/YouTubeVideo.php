@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Casts\Attribute;
+use Illuminate\Support\Facades\Storage;
 use Carbon\Carbon;
 
 class YouTubeVideo extends Model
@@ -31,42 +32,87 @@ class YouTubeVideo extends Model
         'uploaded_at' => 'datetime',
     ];
 
+    protected $attributes = [
+        'upload_status' => 'pending',
+        'video_type' => 'long',
+        'status' => 'public',
+        'category_id' => '22',
+    ];
+
+    // Relationships
     public function platformAccount(): BelongsTo
     {
         return $this->belongsTo(PlatformAccount::class);
     }
 
-    // ========== CÁC METHOD HIỆN TẠI ==========
-
-    // Scope để lấy video cần đăng
+    // Scopes
     public function scopePendingUpload($query)
     {
         return $query->whereNull('video_id')
-            ->where('upload_status', 'pending')
+            ->where(function($q) {
+                $q->where('upload_status', 'pending')
+                    ->orWhere(function($sq) {
+                        // Include stuck uploading videos older than 30 minutes
+                        $sq->where('upload_status', 'uploading')
+                            ->where('updated_at', '<', now()->subMinutes(30));
+                    });
+            })
             ->whereNotNull('scheduled_at')
             ->where('scheduled_at', '<=', now());
     }
 
-    // Scope để lấy video đã lên lịch
     public function scopeScheduled($query)
     {
         return $query->whereNotNull('scheduled_at')
             ->whereNull('video_id');
     }
 
-    // Kiểm tra video có đã được đăng chưa
+    public function scopeShorts($query)
+    {
+        return $query->where('video_type', 'short');
+    }
+
+    public function scopeLongVideos($query)
+    {
+        return $query->where('video_type', 'long');
+    }
+
+    public function scopeUploaded($query)
+    {
+        return $query->whereNotNull('video_id');
+    }
+
+    public function scopeFailed($query)
+    {
+        return $query->where('upload_status', 'failed');
+    }
+
+    public function scopeReadyToUpload($query)
+    {
+        return $query->pendingUpload();
+    }
+
+    // Status Methods
     public function isUploaded(): bool
     {
         return !is_null($this->video_id);
     }
 
-    // Kiểm tra video có đang chờ đăng không
     public function isPending(): bool
     {
         return $this->upload_status === 'pending' && is_null($this->video_id);
     }
 
-    // Kiểm tra video có sẵn sàng đăng không
+    public function isUploading(): bool
+    {
+        return $this->upload_status === 'uploading';
+    }
+
+    public function isFailed(): bool
+    {
+        return $this->upload_status === 'failed';
+    }
+
     public function isReadyToUpload(): bool
     {
         return $this->isPending()
@@ -74,7 +120,179 @@ class YouTubeVideo extends Model
             && $this->scheduled_at <= now();
     }
 
-    // Attribute để hiển thị trạng thái upload
+    public function isStuck(): bool
+    {
+        return $this->upload_status === 'uploading'
+            && $this->updated_at < now()->subMinutes(30);
+    }
+
+    public function isScheduled(): bool
+    {
+        return !is_null($this->scheduled_at) && $this->scheduled_at > now();
+    }
+
+    // Video Type Methods
+    public function isShort(): bool
+    {
+        return $this->video_type === 'short';
+    }
+
+    public function isLong(): bool
+    {
+        return $this->video_type === 'long' || is_null($this->video_type);
+    }
+
+    // File Methods
+    public function hasValidFile(): bool
+    {
+        return $this->video_file && Storage::disk('local')->exists($this->video_file);
+    }
+
+    public function getFileSize(): int
+    {
+        if (!$this->hasValidFile()) {
+            return 0;
+        }
+        return Storage::disk('local')->size($this->video_file);
+    }
+
+    public function getFileSizeMB(): float
+    {
+        return round($this->getFileSize() / (1024 * 1024), 2);
+    }
+
+    public function getFilePath(): ?string
+    {
+        if (!$this->hasValidFile()) {
+            return null;
+        }
+        return Storage::disk('local')->path($this->video_file);
+    }
+
+    // Content Methods
+    public function getFormattedDescription(): string
+    {
+        $description = $this->description;
+
+        if ($this->isShort() && !str_contains(strtolower($description), '#shorts')) {
+            $description = "#Shorts\n\n" . $description;
+        }
+
+        return $description;
+    }
+
+    public function getOptimizedTitle(): string
+    {
+        if ($this->isShort()) {
+            $title = $this->title;
+            if (!str_contains(strtolower($title), '#shorts') && !str_contains(strtolower($title), 'shorts')) {
+                $title = $title . ' #Shorts';
+            }
+            return $title;
+        }
+
+        return $this->title;
+    }
+
+    public function getOptimizedDescription(): string
+    {
+        if ($this->isShort()) {
+            $description = "#Shorts #YouTubeShorts\n\n" . $this->description;
+
+            $viralTags = ['#Viral', '#Trending', '#MustWatch'];
+            $selectedTags = array_rand(array_flip($viralTags), min(3, count($viralTags)));
+            if (is_string($selectedTags)) $selectedTags = [$selectedTags];
+
+            $description .= "\n\n" . implode(' ', $selectedTags);
+            return $description;
+        }
+
+        return $this->description;
+    }
+
+    public function getAutoTags(): array
+    {
+        $tags = [];
+
+        if ($this->isShort()) {
+            $tags = ['Shorts', 'YouTubeShorts', 'Short', 'Viral', 'Trending'];
+
+            // Add content-based tags for Shorts
+            $content = strtolower($this->title . ' ' . $this->description);
+
+            if (str_contains($content, 'funny') || str_contains($content, 'hài') || str_contains($content, 'comedy')) {
+                $tags[] = 'Comedy';
+                $tags[] = 'Funny';
+            }
+
+            if (str_contains($content, 'music') || str_contains($content, 'nhạc') || str_contains($content, 'song')) {
+                $tags[] = 'Music';
+                $tags[] = 'Song';
+            }
+
+            if (str_contains($content, 'dance') || str_contains($content, 'nhảy')) {
+                $tags[] = 'Dance';
+                $tags[] = 'Dancing';
+            }
+        }
+
+        // Extract hashtags from description
+        if ($this->description) {
+            preg_match_all('/#(\w+)/', $this->description, $matches);
+            if (!empty($matches[1])) {
+                foreach ($matches[1] as $tag) {
+                    if (!in_array(strtolower($tag), array_map('strtolower', $tags)) && count($tags) < 15) {
+                        $tags[] = ucfirst(strtolower($tag));
+                    }
+                }
+            }
+        }
+
+        return array_unique($tags);
+    }
+
+    public function getOptimizedCategoryId(): string
+    {
+        if ($this->isShort()) {
+            return '24'; // Entertainment - best for Shorts
+        }
+
+        return $this->category_id;
+    }
+
+    // Update Methods
+    public function markAsUploading(): void
+    {
+        $this->update(['upload_status' => 'uploading']);
+    }
+
+    public function markAsUploaded(string $youtubeId): void
+    {
+        $this->update([
+            'video_id' => $youtubeId,
+            'upload_status' => 'uploaded',
+            'uploaded_at' => now(),
+            'upload_error' => null
+        ]);
+    }
+
+    public function markAsFailed(string $error): void
+    {
+        $this->update([
+            'upload_status' => 'failed',
+            'upload_error' => $error
+        ]);
+    }
+
+    public function resetToPending(): void
+    {
+        $this->update([
+            'upload_status' => 'pending',
+            'upload_error' => null
+        ]);
+    }
+
+    // Attributes
     protected function uploadStatusText(): Attribute
     {
         return Attribute::make(
@@ -104,7 +322,6 @@ class YouTubeVideo extends Model
         );
     }
 
-    // Attribute để hiển thị màu trạng thái
     protected function uploadStatusColor(): Attribute
     {
         return Attribute::make(
@@ -134,33 +351,6 @@ class YouTubeVideo extends Model
         );
     }
 
-    // ========== THÊM CÁC METHOD MỚI CHO VIDEO TYPE ==========
-
-    // Kiểm tra video có phải Shorts không
-    public function isShort(): bool
-    {
-        return $this->video_type === 'short';
-    }
-
-    // Kiểm tra video có phải video dài không
-    public function isLong(): bool
-    {
-        return $this->video_type === 'long' || is_null($this->video_type);
-    }
-
-    // Scope để lấy video Shorts
-    public function scopeShorts($query)
-    {
-        return $query->where('video_type', 'short');
-    }
-
-    // Scope để lấy video dài
-    public function scopeLongVideos($query)
-    {
-        return $query->where('video_type', 'long');
-    }
-
-    // Attribute để hiển thị text loại video
     protected function videoTypeText(): Attribute
     {
         return Attribute::make(
@@ -174,7 +364,6 @@ class YouTubeVideo extends Model
         );
     }
 
-    // Attribute để hiển thị icon loại video
     protected function videoTypeIcon(): Attribute
     {
         return Attribute::make(
@@ -188,7 +377,6 @@ class YouTubeVideo extends Model
         );
     }
 
-    // Attribute để hiển thị màu loại video
     protected function videoTypeColor(): Attribute
     {
         return Attribute::make(
@@ -202,53 +390,7 @@ class YouTubeVideo extends Model
         );
     }
 
-    // Method để get description được format cho Shorts
-    public function getFormattedDescription(): string
-    {
-        $description = $this->description;
-
-        if ($this->isShort() && !str_contains(strtolower($description), '#shorts')) {
-            $description = "#Shorts\n\n" . $description;
-        }
-
-        return $description;
-    }
-
-    // Method để tự động tạo tags cho Shorts
-    public function getAutoTags(): array
-    {
-        $tags = [];
-
-        if ($this->isShort()) {
-            $tags = ['Shorts', 'YouTubeShorts', 'Short', 'Viral', 'Trending'];
-        }
-
-        // Extract hashtags từ description
-        if ($this->description) {
-            preg_match_all('/#(\w+)/', $this->description, $matches);
-            if (!empty($matches[1])) {
-                foreach ($matches[1] as $tag) {
-                    if (!in_array(strtolower($tag), array_map('strtolower', $tags)) && count($tags) < 10) {
-                        $tags[] = ucfirst(strtolower($tag));
-                    }
-                }
-            }
-        }
-
-        return array_unique($tags);
-    }
-
-    // Method để get category tối ưu
-    public function getOptimizedCategoryId(): string
-    {
-        if ($this->isShort()) {
-            return '24'; // Entertainment - tốt nhất cho Shorts
-        }
-
-        return $this->category_id;
-    }
-
-    // Method để get thời lượng khuyến nghị
+    // Helper Methods
     public function getRecommendedDuration(): string
     {
         return match($this->video_type) {
@@ -258,7 +400,6 @@ class YouTubeVideo extends Model
         };
     }
 
-    // Method để get định dạng khuyến nghị
     public function getRecommendedFormat(): string
     {
         return match($this->video_type) {
@@ -266,5 +407,43 @@ class YouTubeVideo extends Model
             'long' => 'Video ngang (16:9), MP4/WebM',
             default => 'MP4, MPEG hoặc WebM',
         };
+    }
+
+    public function getYouTubeUrl(): ?string
+    {
+        return $this->video_id ? "https://www.youtube.com/watch?v={$this->video_id}" : null;
+    }
+
+    // Static Methods
+    public static function getPendingUploadCount(): int
+    {
+        return static::pendingUpload()->count();
+    }
+
+    public static function getUploadedTodayCount(): int
+    {
+        return static::whereDate('uploaded_at', today())->count();
+    }
+
+    public static function getTodaysScheduledCount(): int
+    {
+        return static::whereDate('scheduled_at', today())->count();
+    }
+
+    public static function getStuckVideos()
+    {
+        return static::where('upload_status', 'uploading')
+            ->where('updated_at', '<', now()->subMinutes(30))
+            ->get();
+    }
+
+    public static function resetStuckVideos(): int
+    {
+        return static::where('upload_status', 'uploading')
+            ->where('updated_at', '<', now()->subMinutes(30))
+            ->update([
+                'upload_status' => 'pending',
+                'upload_error' => 'Reset - stuck upload process'
+            ]);
     }
 }
