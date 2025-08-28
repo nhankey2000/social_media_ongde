@@ -18,8 +18,7 @@ class UploadScheduledVideos extends Command
     protected $signature = 'youtube:upload-scheduled
                             {--limit=5 : Số lượng video tối đa upload mỗi lần chạy}
                             {--dry-run : Chỉ hiển thị video sẽ được upload, không thực hiện upload}
-                            {--debug : Hiển thị thông tin debug chi tiết}
-                            {--confirm : Yêu cầu xác nhận trước khi upload (chỉ khi chạy thủ công)}';
+                            {--debug : Hiển thị thông tin debug chi tiết}';
 
     /**
      * The console command description.
@@ -36,13 +35,12 @@ class UploadScheduledVideos extends Command
         $limit = (int) $this->option('limit');
         $dryRun = $this->option('dry-run');
         $debug = $this->option('debug');
-        $needConfirm = $this->option('confirm');
 
         $this->info('🔍 Tìm kiếm video cần upload...');
 
         if ($debug) {
             $this->info("Debug: Tìm video với điều kiện:");
-            $this->info("- upload_status = 'pending' hoặc stuck > 30 phút");
+            $this->info("- upload_status = 'pending' hoặc NULL");
             $this->info("- scheduled_at <= " . now());
             $this->info("- video_id IS NULL");
             $this->info("- Limit: {$limit}");
@@ -56,11 +54,7 @@ class UploadScheduledVideos extends Command
             // Fallback query nếu scope không tồn tại
             $videos = YouTubeVideo::where(function($q) {
                 $q->where('upload_status', 'pending')
-                    ->orWhereNull('upload_status')
-                    ->orWhere(function($sq) {
-                        $sq->where('upload_status', 'uploading')
-                            ->where('updated_at', '<', now()->subMinutes(30));
-                    });
+                    ->orWhereNull('upload_status');
             })
                 ->whereNotNull('scheduled_at')
                 ->where('scheduled_at', '<=', now())
@@ -156,13 +150,12 @@ class UploadScheduledVideos extends Command
             return 0;
         }
 
-        // CHỈ XÁC NHẬN KHI CHẠY THỦ CÔNG VỚI OPTION --confirm
-        if ($needConfirm && !$this->confirm("Bạn có chắc chắn muốn upload {$videos->count()} video này?")) {
+        // Xác nhận trước khi upload
+        if (!$this->confirm("Bạn có chắc chắn muốn upload {$videos->count()} video này?")) {
             $this->info('❌ Đã hủy.');
             return 0;
         }
 
-        // Bắt đầu upload ngay (không confirm khi chạy tự động)
         $this->info('🚀 Bắt đầu upload...');
         $this->newLine();
 
@@ -213,8 +206,7 @@ class UploadScheduledVideos extends Command
                     'title' => $video->title,
                     'scheduled_at' => $video->scheduled_at,
                     'file_size_mb' => $fileSizeMB,
-                    'video_type' => $video->video_type ?? 'long',
-                    'run_mode' => $needConfirm ? 'manual' : 'automatic'
+                    'video_type' => $video->video_type ?? 'long'
                 ]);
 
             } catch (\Exception $e) {
@@ -232,8 +224,7 @@ class UploadScheduledVideos extends Command
                     'title' => $video->title,
                     'error' => $e->getMessage(),
                     'video_file' => $video->video_file,
-                    'platform_account_id' => $video->platform_account_id,
-                    'run_mode' => $needConfirm ? 'manual' : 'automatic'
+                    'platform_account_id' => $video->platform_account_id
                 ]);
             }
         }
@@ -248,10 +239,8 @@ class UploadScheduledVideos extends Command
         if ($successCount > 0) {
             $this->info("📋 Video đã được thêm vào queue.");
 
-            // Kiểm tra queue worker có chạy không (chỉ khi debug)
-            if ($debug) {
-                $this->checkQueueWorker();
-            }
+            // Kiểm tra queue worker có chạy không
+            $this->checkQueueWorker();
         }
 
         return $failCount > 0 ? 1 : 0;
