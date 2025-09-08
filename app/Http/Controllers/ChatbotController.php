@@ -29,10 +29,7 @@ class ChatbotController extends Controller
                 'max_tokens'  => 300,
             ]);
 
-            Log::info('OpenAI raw response: ' . $response->body());
-
             if ($response->failed()) {
-                Log::error('OpenAI API lỗi: ' . $response->body());
                 return response()->json(['reply' => 'OpenAI gặp lỗi, thử lại sau.'], 500);
             }
 
@@ -41,7 +38,6 @@ class ChatbotController extends Controller
 
             return response()->json(['reply' => $reply]);
         } catch (\Exception $e) {
-            Log::error('OpenAI Exception: ' . $e->getMessage());
             return response()->json(['reply' => 'Lỗi server OpenAI.'], 500);
         }
     }

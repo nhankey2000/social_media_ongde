@@ -31,7 +31,6 @@ class AutoPostJob implements ShouldQueue
         $platformAccount = $record->platformAccount;
 
         if (!$platformAccount || $platformAccount->platform->name !== 'Facebook' || !$platformAccount->access_token) {
-            Log::warning('Invalid platform account for Post ID: ' . $record->id);
             return;
         }
 
@@ -60,7 +59,6 @@ class AutoPostJob implements ShouldQueue
                 ]);
             }
 
-            Log::info("Đã đăng bài tự động lên trang {$platformAccount->name}: Post ID {$facebookPostId}");
         } catch (\Exception $e) {
             Log::error('Failed to auto-post for Post ID ' . $record->id . ': ' . $e->getMessage());
         }
