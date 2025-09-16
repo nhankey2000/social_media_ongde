@@ -113,7 +113,7 @@
             cursor: pointer;
             transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
             white-space: nowrap;
-            min-width: 120px;
+            min-width: 100px;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -131,6 +131,27 @@
             font-weight: 600;
             box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
             transform: translateY(-2px);
+        }
+
+        /* Special styling for "Tất cả" button */
+        .menu-button.all-button {
+            background: linear-gradient(45deg, #4ecdc4, #45b7d1);
+            color: white;
+            font-weight: 600;
+            box-shadow: 0 4px 15px rgba(69, 183, 209, 0.3);
+        }
+
+        .menu-button.all-button:hover {
+            background: linear-gradient(45deg, #45b7d1, #4ecdc4);
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(69, 183, 209, 0.4);
+        }
+
+        .menu-button.all-button.active {
+            background: linear-gradient(45deg, #4ecdc4, #45b7d1);
+            color: white;
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(69, 183, 209, 0.5);
         }
 
         .main-title {
@@ -543,9 +564,9 @@
 
         @media (max-width: 768px) {
             .menu-button {
-                min-width: 100px;
-                font-size: 0.8rem;
-                padding: 8px 12px;
+                min-width: 90px;
+                font-size: 0.75rem;
+                padding: 8px 10px;
             }
 
             .image-grid {
@@ -622,6 +643,12 @@
         }
 
         @media (max-width: 480px) {
+            .menu-button {
+                min-width: 80px;
+                font-size: 0.7rem;
+                padding: 6px 8px;
+            }
+
             .image-grid {
                 grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
                 gap: 12px;
@@ -651,7 +678,11 @@
 
     <div class="menu-section">
         <div class="tab-menu">
-            <button class="menu-button active" onclick="selectContent('khai-vi')">Khai Vị</button>
+            <button class="menu-button all-button active" onclick="selectContent('tat-ca')">
+                <i class="fas fa-th"></i>
+                Tất Cả
+            </button>
+            <button class="menu-button" onclick="selectContent('khai-vi')">Khai Vị</button>
             <button class="menu-button" onclick="selectContent('mon-chinh')">Món Chính</button>
             <button class="menu-button" onclick="selectContent('mon-kem')">Món Thêm</button>
             <button class="menu-button" onclick="selectContent('lau')">Lẩu</button>
@@ -662,8 +693,8 @@
         </div>
     </div>
 
-    <h2 class="main-title" id="mainTitle">Khai Vị</h2>
-    <p class="subtitle" id="subtitle">Các món khai vị đặc sắc</p>
+    <h2 class="main-title" id="mainTitle">Tất Cả Món Ăn</h2>
+    <p class="subtitle" id="subtitle">Toàn bộ menu đặc sắc của Ông Đề</p>
 
     <div id="contentArea">
         <div class="loading">⏳ Đang tải dữ liệu...</div>
@@ -683,17 +714,17 @@
                     Kính chúc quý khách thưởng thức món ngon tròn vị, trải nghiệm trò chơi dân gian thật vui và lưu lại nhiều kỷ niệm đáng nhớ!
                 </p>
                 <button onclick="closeModal('welcomeModal')" style="
-                    background: linear-gradient(45deg, #4ecdc4, #45b7d1);
-                    color: white;
-                    border: none;
-                    padding: 12px 30px;
-                    border-radius: 25px;
-                    font-size: 1rem;
-                    font-weight: 600;
-                    cursor: pointer;
-                    transition: all 0.3s ease;
-                    box-shadow: 0 4px 15px rgba(69, 183, 209, 0.3);
-                " onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 20px rgba(69, 183, 209, 0.4)'"
+                        background: linear-gradient(45deg, #4ecdc4, #45b7d1);
+                        color: white;
+                        border: none;
+                        padding: 12px 30px;
+                        border-radius: 25px;
+                        font-size: 1rem;
+                        font-weight: 600;
+                        cursor: pointer;
+                        transition: all 0.3s ease;
+                        box-shadow: 0 4px 15px rgba(69, 183, 209, 0.3);
+                    " onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 20px rgba(69, 183, 209, 0.4)'"
                         onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 15px rgba(69, 183, 209, 0.3)'">
                     Khám phá menu ngay!
                 </button>
@@ -719,7 +750,7 @@
 
 <script>
     // Global variables
-    let currentType = 'khai-vi';
+    let currentType = 'tat-ca';
     let currentData = [];
     let currentImageIndex = 0;
     let currentPage = 1;
@@ -975,6 +1006,7 @@
 
         // Update titles
         const typeNames = {
+            'tat-ca': 'Tất Cả Món Ăn',
             'khai-vi': 'Khai Vị',
             'mon-chinh': 'Món Chính',
             'mon-kem': 'Món Kèm',
@@ -985,6 +1017,18 @@
             'mon-dac-biet': 'Món Đặc Biệt'
         };
 
+        const subtitles = {
+            'tat-ca': 'Toàn bộ menu đặc sắc của Ông Đề',
+            'khai-vi': 'Các món khai vị đặc sắc',
+            'mon-chinh': 'Các món chính đặc sắc',
+            'mon-kem': 'Các món kèm đặc sắc',
+            'lau': 'Các món lẩu đặc sắc',
+            'trang-mieng': 'Các món tráng miệng đặc sắc',
+            'thuc-uong': 'Các thức uống đặc sắc',
+            'combo-set': 'Các combo/set đặc sắc',
+            'mon-dac-biet': 'Các món đặc biệt đặc sắc'
+        };
+
         const mainTitle = safeGetElement('mainTitle');
         const subtitle = safeGetElement('subtitle');
 
@@ -993,7 +1037,7 @@
         }
 
         if (subtitle) {
-            subtitle.textContent = `Các món ${typeNames[type].toLowerCase()} đặc sắc`;
+            subtitle.textContent = subtitles[type];
         }
 
         // Load data
@@ -1011,25 +1055,80 @@
             // Reset về trang 1 khi load danh mục mới
             currentPage = 1;
 
-            // Gọi API /api/images-menu-ongde với tham số category
-            const response = await fetch(`${API_BASE_URL}/api/images-menu-ongde?category=${type}`);
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
+            if (type === 'tat-ca') {
+                // Load tất cả dữ liệu từ tất cả categories
+                await loadAllData();
+            } else {
+                // Gọi API /api/images-menu-ongde với tham số category
+                const response = await fetch(`${API_BASE_URL}/api/images-menu-ongde?category=${type}`);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+
+                if (!data.success || !data.data || data.data.length === 0) {
+                    contentArea.innerHTML = '<div class="error">📭 Không có dữ liệu để hiển thị</div>';
+                    currentData = [];
+                    return;
+                }
+
+                currentData = shuffleArray(data.data);
+                renderImages(currentData);
             }
 
-            const data = await response.json();
+        } catch (error) {
+            console.error('Error loading data:', error);
+            contentArea.innerHTML = `<div class="error">❌ Lỗi tải dữ liệu: ${error.message}</div>`;
+        }
+    }
 
-            if (!data.success || !data.data || data.data.length === 0) {
+    // Load all data from all categories
+    async function loadAllData() {
+        const contentArea = safeGetElement('contentArea');
+        if (!contentArea) return;
+
+        try {
+            const categories = ['khai-vi', 'mon-chinh', 'mon-kem', 'lau', 'trang-mieng', 'thuc-uong', 'combo-set', 'mon-dac-biet'];
+            let allData = [];
+            let loadedCategories = 0;
+
+            // Update loading message with progress
+            contentArea.innerHTML = `<div class="loading">🎲 Đang tải dữ liệu... (0/${categories.length})</div>`;
+
+            for (const category of categories) {
+                try {
+                    const response = await fetch(`${API_BASE_URL}/api/images-menu-ongde?category=${category}`);
+                    if (response.ok) {
+                        const data = await response.json();
+                        if (data.success && data.data && data.data.length > 0) {
+                            // Add category info to each item
+                            const categorizedData = data.data.map(item => ({
+                                ...item,
+                                category: category
+                            }));
+                            allData = allData.concat(categorizedData);
+                        }
+                    }
+                } catch (error) {
+                    console.warn(`Error loading category ${category}:`, error);
+                }
+
+                loadedCategories++;
+                contentArea.innerHTML = `<div class="loading">🎲 Đang tải dữ liệu... (${loadedCategories}/${categories.length})</div>`;
+            }
+
+            if (allData.length === 0) {
                 contentArea.innerHTML = '<div class="error">📭 Không có dữ liệu để hiển thị</div>';
                 currentData = [];
                 return;
             }
 
-            currentData = shuffleArray(data.data);
+            currentData = shuffleArray(allData);
             renderImages(currentData);
 
         } catch (error) {
-            console.error('Error loading data:', error);
+            console.error('Error loading all data:', error);
             contentArea.innerHTML = `<div class="error">❌ Lỗi tải dữ liệu: ${error.message}</div>`;
         }
     }
@@ -1130,13 +1229,13 @@
 
         // Thêm loading state
         content.innerHTML = `
-            <div class="media-modal-content">
-                <div style="display: flex; align-items: center; justify-content: center; height: 200px; color: #666;">
-                    <i class="fas fa-spinner fa-spin" style="font-size: 2rem; margin-right: 10px;"></i>
-                    Đang tải ảnh...
+                <div class="media-modal-content">
+                    <div style="display: flex; align-items: center; justify-content: center; height: 200px; color: #666;">
+                        <i class="fas fa-spinner fa-spin" style="font-size: 2rem; margin-right: 10px;"></i>
+                        Đang tải ảnh...
+                    </div>
                 </div>
-            </div>
-        `;
+            `;
 
         modal.style.display = 'flex';
 
@@ -1144,8 +1243,8 @@
         const img = new Image();
         img.onload = function() {
             content.innerHTML = `
-                <div class="media-modal-content">
-                    <!-- Zoom Controls -->
+                    <div class="media-modal-content">
+                        <!-- Zoom Controls -->
             <div class="zoom-controls">
             <button class="zoom-btn zoom-in" onclick="zoomIn()" title="Phóng to">
             <i class="fas fa-plus"></i>
@@ -1160,10 +1259,10 @@
 
                 <!-- Navigation buttons -->
             ${currentData.length > 1 ? `
-                        <button class="nav-button nav-prev" onclick="navigateImage(-1)" title="Ảnh trước">
-                            <i class="fas fa-chevron-left"></i>
-                        </button>
-                    ` : ''}
+                            <button class="nav-button nav-prev" onclick="navigateImage(-1)" title="Ảnh trước">
+                                <i class="fas fa-chevron-left"></i>
+                            </button>
+                        ` : ''}
 
                 <!-- Zoom Container -->
             <div class="zoom-container"
@@ -1184,30 +1283,30 @@
             </div>
 
             ${currentData.length > 1 ? `
-                        <button class="nav-button nav-next" onclick="navigateImage(1)" title="Ảnh sau">
-                            <i class="fas fa-chevron-right"></i>
-                        </button>
-                    ` : ''}
+                            <button class="nav-button nav-next" onclick="navigateImage(1)" title="Ảnh sau">
+                                <i class="fas fa-chevron-right"></i>
+                            </button>
+                        ` : ''}
 
                 <!-- Zoom Level Indicator -->
             <div class="zoom-level">100%</div>
 
                 <!-- Image Counter -->
             ${currentData.length > 1 ? `
-                        <div class="image-counter">
-                            ${currentImageIndex + 1} / ${currentData.length}
-                        </div>
-                    ` : ''}
+                            <div class="image-counter">
+                                ${currentImageIndex + 1} / ${currentData.length}
+                            </div>
+                        ` : ''}
             </div>
             `;
 
-            // Set current image reference for zoom functions
-            currentImage = content.querySelector('.zoomable-image');
-            initializeZoom();
-        };
+                // Set current image reference for zoom functions
+                currentImage = content.querySelector('.zoomable-image');
+                initializeZoom();
+            };
 
-        img.onerror = function() {
-            content.innerHTML = `
+            img.onerror = function() {
+                content.innerHTML = `
             <div class="media-modal-content">
             <div style="text-align: center; color: #666; padding: 40px;">
             <i class="fas fa-exclamation-triangle" style="font-size: 3rem; margin-bottom: 20px; color: #ff6b6b;"></i>
@@ -1215,119 +1314,119 @@
             </div>
             </div>
             `;
-        };
-        img.src = url;
-    }
-
-    // Navigate giữa các ảnh
-    function navigateImage(direction) {
-        if (currentData.length <= 1) return;
-
-        currentImageIndex += direction;
-
-        // Loop around
-        if (currentImageIndex >= currentData.length) {
-            currentImageIndex = 0;
-        } else if (currentImageIndex < 0) {
-            currentImageIndex = currentData.length - 1;
+            };
+            img.src = url;
         }
 
-        const newUrl = currentData[currentImageIndex].url;
-        viewMedia(newUrl, currentImageIndex);
-    }
+        // Navigate giữa các ảnh
+        function navigateImage(direction) {
+            if (currentData.length <= 1) return;
 
-    // Close modal
-    function closeModal(modalId) {
-        const modal = safeGetElement(modalId);
-        if (modal) {
-            modal.style.animation = 'fadeOut 0.3s ease';
-            setTimeout(() => {
-                modal.style.display = 'none';
-                modal.style.animation = '';
+            currentImageIndex += direction;
 
-                // Reset zoom when closing modal
-                if (modalId === 'mediaModal') {
-                    initializeZoom();
-                    currentImage = null;
-                }
-            }, 300);
+            // Loop around
+            if (currentImageIndex >= currentData.length) {
+                currentImageIndex = 0;
+            } else if (currentImageIndex < 0) {
+                currentImageIndex = currentData.length - 1;
+            }
+
+            const newUrl = currentData[currentImageIndex].url;
+            viewMedia(newUrl, currentImageIndex);
         }
-    }
 
-    // Close modal khi click outside
-    function closeModalOnOutside(event) {
-        if (event.target === event.currentTarget) {
-            closeModal('mediaModal');
+        // Close modal
+        function closeModal(modalId) {
+            const modal = safeGetElement(modalId);
+            if (modal) {
+                modal.style.animation = 'fadeOut 0.3s ease';
+                setTimeout(() => {
+                    modal.style.display = 'none';
+                    modal.style.animation = '';
+
+                    // Reset zoom when closing modal
+                    if (modalId === 'mediaModal') {
+                        initializeZoom();
+                        currentImage = null;
+                    }
+                }, 300);
+            }
         }
-    }
 
-    // Keyboard support
-    document.addEventListener('keydown', function(event) {
-        const mediaModal = safeGetElement('mediaModal');
-        const welcomeModal = safeGetElement('welcomeModal');
-
-        if (event.key === 'Escape') {
-            if (mediaModal && mediaModal.style.display === 'flex') {
+        // Close modal khi click outside
+        function closeModalOnOutside(event) {
+            if (event.target === event.currentTarget) {
                 closeModal('mediaModal');
-            } else if (welcomeModal && welcomeModal.style.display === 'flex') {
-                closeModal('welcomeModal');
             }
         }
 
-        // Navigation và zoom với keyboard khi modal ảnh đang mở
-        if (mediaModal && mediaModal.style.display === 'flex') {
-            switch(event.key) {
-                case 'ArrowLeft':
-                    event.preventDefault();
-                    navigateImage(-1);
-                    break;
-                case 'ArrowRight':
-                    event.preventDefault();
-                    navigateImage(1);
-                    break;
-                case '+':
-                case '=':
-                    event.preventDefault();
-                    zoomIn();
-                    break;
-                case '-':
-                case '_':
-                    event.preventDefault();
-                    zoomOut();
-                    break;
-                case '0':
-                    event.preventDefault();
-                    resetZoom();
-                    break;
+        // Keyboard support
+        document.addEventListener('keydown', function(event) {
+            const mediaModal = safeGetElement('mediaModal');
+            const welcomeModal = safeGetElement('welcomeModal');
+
+            if (event.key === 'Escape') {
+                if (mediaModal && mediaModal.style.display === 'flex') {
+                    closeModal('mediaModal');
+                } else if (welcomeModal && welcomeModal.style.display === 'flex') {
+                    closeModal('welcomeModal');
+                }
             }
-        }
-    });
 
-    // Initialize
-    document.addEventListener('DOMContentLoaded', async function() {
-        const requiredElements = ['mainTitle', 'subtitle', 'contentArea'];
-        const missingElements = requiredElements.filter(id => !safeGetElement(id));
-
-        if (missingElements.length > 0) {
-            console.error('Missing required elements:', missingElements);
-            return;
-        }
-
-        // Hiển thị modal chào mừng
-        const welcomeModal = safeGetElement('welcomeModal');
-        if (welcomeModal) {
-            welcomeModal.style.display = 'flex';
-        }
-
-        // Set active button for Khai Vị
-        document.querySelectorAll('.menu-button').forEach(button => {
-            button.classList.remove('active');
+            // Navigation và zoom với keyboard khi modal ảnh đang mở
+            if (mediaModal && mediaModal.style.display === 'flex') {
+                switch(event.key) {
+                    case 'ArrowLeft':
+                        event.preventDefault();
+                        navigateImage(-1);
+                        break;
+                    case 'ArrowRight':
+                        event.preventDefault();
+                        navigateImage(1);
+                        break;
+                    case '+':
+                    case '=':
+                        event.preventDefault();
+                        zoomIn();
+                        break;
+                    case '-':
+                    case '_':
+                        event.preventDefault();
+                        zoomOut();
+                        break;
+                    case '0':
+                        event.preventDefault();
+                        resetZoom();
+                        break;
+                }
+            }
         });
-        document.querySelector('.menu-button[onclick="selectContent(\'khai-vi\')"]')?.classList.add('active');
 
-        // Load default content - Khai Vị
-        await loadData('khai-vi');
-    });
-</script>
+        // Initialize
+        document.addEventListener('DOMContentLoaded', async function() {
+            const requiredElements = ['mainTitle', 'subtitle', 'contentArea'];
+            const missingElements = requiredElements.filter(id => !safeGetElement(id));
+
+            if (missingElements.length > 0) {
+                console.error('Missing required elements:', missingElements);
+                return;
+            }
+
+            // Hiển thị modal chào mừng
+            const welcomeModal = safeGetElement('welcomeModal');
+            if (welcomeModal) {
+                welcomeModal.style.display = 'flex';
+            }
+
+            // Set active button for Tất Cả (default)
+            document.querySelectorAll('.menu-button').forEach(button => {
+                button.classList.remove('active');
+            });
+            document.querySelector('.menu-button[onclick="selectContent(\'tat-ca\')"]')?.classList.add('active');
+
+            // Load default content - Tất Cả
+            await loadData('tat-ca');
+        });
+    </script>
 </body>
 </html>
