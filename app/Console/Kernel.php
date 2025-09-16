@@ -10,29 +10,31 @@ class Kernel extends ConsoleKernel
 {
     protected function schedule(Schedule $schedule): void
     {
+        // Task monitor
         $schedule->call(function () {
             Log::info('Task schedule chạy OK lúc: ' . now());
         })->everyMinute();
 
-        $schedule->command('posts:publish-scheduled')->everyMinute();
-        $schedule->command('prompts:process')->everyMinute();
-        $schedule->command('analytics:sync')->everyMinute();
-        $schedule->command('instagram:process')->everyMinute();
+        // Giảm tần suất các task
+        $schedule->command('posts:publish-scheduled')->everyFiveMinutes();
+        $schedule->command('prompts:process')->everyFiveMinutes();
+        $schedule->command('analytics:sync')->dailyAt('02:00'); // Chuyển sang hàng ngày
+        $schedule->command('instagram:process')->everyFiveMinutes();
 
-        // YouTube Upload Scheduler - Fixed with proper scope call
-        $schedule->command('youtube:upload-scheduled --limit=10')
-            ->everyMinute()
-            ->withoutOverlapping(10) // Timeout 10 phút
-            ->runInBackground()
-            ->appendOutputTo(storage_path('logs/youtube-scheduler.log'));
+        // Tạm vô hiệu hóa YouTube upload để test login
+        // $schedule->command('youtube:upload-scheduled --limit=2') // Giảm limit
+        //     ->everyFiveMinutes() // Giảm tần suất
+        //     ->withoutOverlapping(10)
+        //     ->runInBackground()
+        //     ->appendOutputTo(storage_path('logs/youtube-scheduler.log'));
 
-        // Reset stuck videos every 30 minutes
+        // Reset stuck videos
         $schedule->command('youtube:reset-stuck --minutes=30')
             ->everyThirtyMinutes()
             ->withoutOverlapping()
             ->appendOutputTo(storage_path('logs/youtube-reset.log'));
 
-        // Log hoạt động YouTube scheduler - Fixed scope call
+        // Log YouTube status
         $schedule->call(function () {
             try {
                 $pendingCount = \App\Models\YouTubeVideo::getPendingUploadCount();
@@ -72,7 +74,7 @@ class Kernel extends ConsoleKernel
             }
         })->dailyAt('23:59');
 
-        // Weekly cleanup - reset old failed uploads
+        // Weekly cleanup
         $schedule->call(function () {
             try {
                 $oldFailedCount = \App\Models\YouTubeVideo::where('upload_status', 'failed')
@@ -87,7 +89,7 @@ class Kernel extends ConsoleKernel
             } catch (\Exception $e) {
                 Log::error('Error during weekly cleanup', ['error' => $e->getMessage()]);
             }
-        })->weeklyOn(1, '02:00'); // Every Monday at 2 AM
+        })->weeklyOn(1, '02:00');
     }
 
     protected function commands(): void
