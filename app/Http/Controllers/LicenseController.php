@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\License;
+use App\Models\File; // Thêm model File
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 
@@ -11,6 +12,7 @@ class LicenseController extends Controller
     public function index()
     {
         $licenses = License::orderBy('created_at', 'desc')->get();
+        $files = File::orderBy('created_at', 'desc')->get(); // Lấy danh sách file
 
         // Statistics
         $totalLicenses = $licenses->count();
@@ -23,12 +25,14 @@ class LicenseController extends Controller
 
         return view('licenses.index', compact(
             'licenses',
+            'files', // Thêm biến files
             'totalLicenses',
             'activeLicenses',
             'expiredLicenses',
             'expiringNext7Days'
         ));
     }
+    // ... các hàm store, destroy, extend giữ nguyên ...
 
     public function store(Request $request)
     {

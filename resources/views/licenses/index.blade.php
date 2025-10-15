@@ -131,7 +131,53 @@
                     @endif
                 </div>
             </div>
-
+            <!-- Danh sách file zip -->
+            <div class="card mt-4">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">📂 Danh sách file zip</h5>
+                </div>
+                <div class="card-body">
+                    @if($files->count() > 0)
+                        <div class="table-responsive">
+                            <table class="table table-striped table-hover">
+                                <thead class="table-dark">
+                                <tr>
+                                    <th>ID</th>
+                                    <th>📄 Tên file</th>
+                                    <th>📏 Kích thước</th>
+                                    <th>🔗 Link tải</th>
+                                    <th>🔧 Thao tác</th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                @foreach($files as $file)
+                                    <tr>
+                                        <td>{{ $file->id }}</td>
+                                        <td>{{ $file->name }}</td>
+                                        <td>{{ number_format($file->size / 1024, 2) }} KB</td>
+                                        <td>
+                                            <a href="{{ route('files.download', $file->id) }}" class="btn btn-sm btn-outline-primary">Tải về</a>
+                                        </td>
+                                        <td>
+                                            <form method="POST" action="{{ route('files.destroy', $file->id) }}"
+                                                  class="d-inline" onsubmit="return confirm('Bạn có chắc muốn xóa?')">
+                                                @csrf
+                                                @method('DELETE')
+                                                <button type="submit" class="btn btn-sm btn-outline-danger">🗑️ Xóa</button>
+                                            </form>
+                                        </td>
+                                    </tr>
+                                @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                    @else
+                        <div class="text-center py-4">
+                            <p class="text-muted">Chưa có file nào được upload</p>
+                        </div>
+                    @endif
+                </div>
+            </div>
             <!-- Form thêm bản quyền mới -->
             <div class="card">
                 <div class="card-header bg-success text-white">
@@ -165,7 +211,26 @@
                     </form>
                 </div>
             </div>
-
+            <!-- Form upload file zip -->
+            <div class="card mt-4">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">📤 Upload file zip</h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="{{ route('files.store') }}" enctype="multipart/form-data">
+                        @csrf
+                        <div class="row">
+                            <div class="col-md-8 mb-3">
+                                <label for="zip_file" class="form-label">📂 Chọn file zip</label>
+                                <input type="file" name="zip_file" class="form-control" accept=".zip" required>
+                            </div>
+                            <div class="col-md-4 mb-3 d-flex align-items-end">
+                                <button type="submit" class="btn btn-info w-100">💾 Upload</button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
             <!-- Thống kê tổng quan -->
             <div class="row mt-4 mb-4">
                 <div class="col-md-3">
@@ -203,6 +268,7 @@
             </div>
         </div>
     </div>
+
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
