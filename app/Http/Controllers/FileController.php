@@ -11,39 +11,40 @@ class FileController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'zip_file' => 'required|file|mimes:zip|max:551200', // Tăng lên 50MB
+            'zip_file' => 'required|file|mimes:zip|max:102400', // Tăng lên 100MB nếu cần
         ]);
 
         try {
             $file = $request->file('zip_file');
-            $path = $file->store('zips', 'public');
+            $originalName = $file->getClientOriginalName(); // Lấy tên gốc
+            $path = $file->storeAs('zips', $originalName, 'public'); // Lưu với tên gốc
 
             $fileModel = File::create([
-                'name' => $file->getClientOriginalName(),
+                'name' => $originalName, // Lưu tên gốc
                 'path' => $path,
                 'size' => $file->getSize(),
             ]);
 
-            return redirect()->route('licenses.index')->with('success', 'Đã upload file: ' . $fileModel->name);
+            return redirect()->route('licenses.index')->with('success', 'Đã upload file: ' . $originalName);
         } catch (\Exception $e) {
             return redirect()->back()->with('error', 'Lỗi upload file: ' . $e->getMessage());
         }
     }
 
-    public function download($id)
+    public function download($filename)
     {
         try {
-            $file = File::findOrFail($id);
+            $file = File::where('name', $filename)->firstOrFail();
             return Storage::disk('public')->download($file->path, $file->name);
         } catch (\Exception $e) {
-            abort(404, 'File không tồn tại');
+            abort(404, 'File không tồn tại hoặc đã bị xóa: ' . $e->getMessage());
         }
     }
 
-    public function destroy($id)
+    public function destroy($filename)
     {
         try {
-            $file = File::findOrFail($id);
+            $file = File::where('name', $filename)->firstOrFail();
             Storage::disk('public')->delete($file->path);
             $file->delete();
             return redirect()->route('licenses.index')->with('success', 'Đã xóa file: ' . $file->name);

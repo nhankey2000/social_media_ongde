@@ -156,11 +156,13 @@
                                         <td>{{ $file->name }}</td>
                                         <td>{{ number_format($file->size / 1024, 2) }} KB</td>
                                         <td>
-                                            <a href="{{ route('files.download', $file->id) }}" class="btn btn-sm btn-outline-primary">Tải về</a>
+                                            <a href="{{ route('files.download', ['filename' => $file->name]) }}" class="btn btn-sm btn-outline-primary" target="_blank">
+                                                📥 Tải về
+                                            </a>
                                         </td>
                                         <td>
-                                            <form method="POST" action="{{ route('files.destroy', $file->id) }}"
-                                                  class="d-inline" onsubmit="return confirm('Bạn có chắc muốn xóa?')">
+                                            <form method="POST" action="{{ route('files.destroy', ['filename' => $file->name]) }}" class="d-inline"
+                                                  onsubmit="return confirm('Bạn có chắc muốn xóa file {{ $file->name }}?')">
                                                 @csrf
                                                 @method('DELETE')
                                                 <button type="submit" class="btn btn-sm btn-outline-danger">🗑️ Xóa</button>
