@@ -73,14 +73,10 @@ Route::get('/menu-ong-de', [App\Http\Controllers\MenuOngDeController::class, 'sh
 Route::get('/khu-vuon-ma-quai', [KhuVuonMaQuaiController::class, 'index'])->name('khuvuonmaquai');
 Route::get('/so-tay-chan-nuoi', [SoTayChanNuoiController::class, 'index'])->name('sotaychannuoi');
 Route::get('/banh-xeo-co-tu', [BanhXeoCoTuController::class, 'index'])->name('banhxeocotu');
-Route::get('/licenses', [LicenseController::class, 'index'])->name('licenses.index');
-Route::post('/licenses', [LicenseController::class, 'store'])->name('licenses.store');
-Route::delete('/licenses/{id}', [LicenseController::class, 'destroy'])->name('licenses.destroy');
-Route::post('/licenses/{id}/extend', [LicenseController::class, 'extend'])->name('licenses.extend');
 
 Route::post('/files', [FileController::class, 'store'])->name('files.store');
-Route::get('/files/{id}/download', [FileController::class, 'download'])->name('files.download');
-Route::delete('/files/{id}', [FileController::class, 'destroy'])->name('files.destroy');
+Route::get('/files/{filename}/download', [FileController::class, 'download'])->name('files.download'); // Thay {id} bằng {filename}
+Route::delete('/files/{filename}', [FileController::class, 'destroy'])->name('files.destroy'); // Thay {id} bằng {filename}
 /*
 |--------------------------------------------------------------------------
 | License Management Routes (New System)
