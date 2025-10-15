@@ -2,6 +2,20 @@
 
 namespace App\Providers\Filament;
 
+use App\Filament\Resources\CategoryResource;
+use App\Filament\Resources\DanhmucBXResource;
+use App\Filament\Resources\DanhmucNHSResource;
+use App\Filament\Resources\DanhmucResource;
+use App\Filament\Resources\DataImagesBXResource;
+use App\Filament\Resources\DataImagesNHResource;
+use App\Filament\Resources\DataPostBXResource;
+use App\Filament\Resources\DataPostNHResource;
+use App\Filament\Resources\DataPostResource;
+use App\Filament\Resources\ImageLibraryResource;
+use App\Filament\Resources\ImageMenuResource;
+use App\Filament\Resources\ImagesDataResource;
+use App\Filament\Resources\MenuCategoryResource;
+use App\Filament\Resources\UserResource;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
@@ -17,8 +31,12 @@ use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
 use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Session\Middleware\StartSession;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
-use App\Filament\Resources\MessageResource; // Thêm import cho MessageResource
-use App\Filament\Resources\PlatformAccountResource; // Thêm import cho PlatformAccountResource
+use App\Filament\Resources\MessageResource;
+
+// Thêm import cho MessageResource
+use App\Filament\Resources\PlatformAccountResource;
+
+// Thêm import cho PlatformAccountResource
 
 class AdminPanelProvider extends PanelProvider
 {
@@ -34,27 +52,35 @@ class AdminPanelProvider extends PanelProvider
 
 
             ->renderHook('panels::footer', function () {
-                return view('components.chatbot');
+//                return view('components.chatbot');
             })
-
             ->colors([
                 'primary' => Color::Amber,
             ])
-            ->discoverResources(in: app_path('Filament/Resources'), for: 'App\\Filament\\Resources')
+//            ->discoverResources(in: app_path('Filament/Resources'), for: 'App\\Filament\\Resources')
             ->resources([
-                PlatformAccountResource::class, // Đăng ký thủ công PlatformAccountResource
-                MessageResource::class, // Đăng ký thủ công MessageResource
+                DanhmucBXResource::class,
+                DanhmucNHSResource::class,
+                DanhMucResource::class,
+                DataPostNHResource::class,
+                DataPostBXResource::class,
+                DataPostResource::class,
+                ImageMenuResource::class,
+                MenuCategoryResource::class,
+                UserResource::class,
+                DataImagesBXResource::class,
+                DataImagesNHResource::class,
+                ImagesDataResource::class
             ])
 //
 //            ->viteTheme('resources/css/filament/theme.css')
 
-            ->discoverPages(in: app_path('Filament/Pages'), for: 'App\\Filament\\Pages')
-            // ->pages([
-            //     Pages\Dashboard::class,
-            //     \App\Filament\Pages\GrowthChart::class, // Trang GrowthChart đã có
-            // ])
+//            ->discoverPages(in: app_path('Filament/Pages'), for: 'App\\Filament\\Pages')
+            ->pages([
+                Pages\Dashboard::class,
+            ])
 
-            ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\\Filament\\Widgets')
+//            ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\\Filament\\Widgets')
             ->widgets([
                 Widgets\AccountWidget::class,
                 Widgets\FilamentInfoWidget::class,
@@ -70,7 +96,6 @@ class AdminPanelProvider extends PanelProvider
                 DisableBladeIconComponents::class,
                 DispatchServingFilamentEvent::class,
             ])
-
             ->authMiddleware([
                 Authenticate::class,
             ]);
