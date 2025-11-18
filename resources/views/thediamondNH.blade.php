@@ -681,7 +681,7 @@
         <h3 class="contact-title">Thông tin liên hệ</h3>
         <div class="contact-item">
             <span class="contact-icon">Địa chỉ:</span>
-            <span>Số 10B,đường Trần Hoàng Na, Khu dân cư Hồng Phát, P. Ninh Kiều, Cần Thơ</span>
+            <span>Số 10B,đường Trần Hoàng Na, Khu dân cư Hồng Phát, P. An Bình, Cần Thơ</span>
         </div>
         <div class="contact-item">
             <span class="contact-icon">Hotline:</span>
@@ -689,7 +689,7 @@
         </div>
         <div class="contact-item">
             <span class="contact-icon">Giờ mở cửa:</span>
-            <span>10:00 – 19:00 (hàng ngày)</span>
+            <span>10:00 – 23:00 (hàng ngày)</span>
         </div>
     </div>
     <div class="footer">
@@ -790,7 +790,8 @@
         coverBack.innerHTML = `
             <div style="display:flex; align-items:center; justify-content:center; height:100%; background:#f8f5e8; padding:40px; text-align:center;">
                 <p style="color:#8B6914; font-size:1.3rem; font-weight:600; line-height:1.8;">
-                    Chào mừng quý khách<br>đến với<br><span style="color:#d32f2f; font-size:1.6rem; font-weight:800;">MENU ĐẶC BIỆT</span><br>của chúng tôi
+                  NHÀ HÀNG HỒ BƠI HỒNG PHÁT<br><span style="color:#d32f2f; font-size:1.6rem; font-weight:800;">CHÚC QUÝ KHÁCH NGON MIỆNG</span>
+
                 </p>
             </div>
         `;
@@ -836,7 +837,7 @@
                     <p style="font-size:1.1rem; margin-bottom:12px; font-weight:600;">📞 Hotline:</p>
                     <p style="font-size:1.3rem; font-weight:800; margin-bottom:20px;">0901 273 222</p>
                     <p style="font-size:1.1rem; margin-bottom:12px; font-weight:600;">🕐 Giờ mở cửa:</p>
-                    <p style="font-size:0.95rem;">10:00 – 19:00 (Hàng ngày)</p>
+                    <p style="font-size:0.95rem;">10:00 – 23:00 (Hàng ngày)</p>
                 </div>
                 <p style="font-size:0.9rem; font-style:italic; opacity:0.9;">Hẹn gặp lại quý khách!</p>
             </div>

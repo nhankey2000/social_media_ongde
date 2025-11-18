@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>NHÀ HÀNG HỒ BƠI - SAPHIRA VIP CARD</title>
+    <title>NHÀ HÀNG HỒ BƠI - SAPHIRE VIP CARD</title>
     <link rel="icon" href="images/favicon.ico" type="image/x-icon">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -548,7 +548,7 @@
         </div>
     </div>
 
-    <h1 class="main-title">SAPHIRA VIP CARD</h1>
+    <h1 class="main-title">SAPHIRE VIP CARD</h1>
     <p class="subtitle">NHÀ HÀNG HỒ BƠI HỒNG PHÁT - HẢI SẢN TƯƠI SỐNG & MÓN ĂN ĐỒNG QUÊ</p>
     <p class="description">
         Thưởng thức hải sản tươi rói chế biến tại chỗ cùng các món đồng quê đậm vị miền Tây. Không gian hồ bơi thoáng mát, thích hợp tổ chức tiệc tất niên, sinh nhật, họp mặt và liên hoan gia đình.
@@ -559,8 +559,8 @@
             <div class="social-icon">
                 <img src="images/saphira.png" alt="Đặc Quyền VIP" loading="lazy">
             </div>
-            <div class="social-title">Đặc Quyền VIP SAPHIRA</div>
-            <div class="social-description">Ưu đãi độc quyền cho thành viên SAPHIRA</div>
+            <div class="social-title">Đặc Quyền VIP SAPHIRE</div>
+            <div class="social-description">Ưu đãi độc quyền cho thành viên SAPHIRE</div>
         </div>
 
         <a href="#" onclick="showMenu(); return false;" class="social-card menu-card">
@@ -614,7 +614,7 @@
                 <img id="vip-image" src="images/vipgold.png" alt="SAPHIRA VIP" style="width: 80px; height: 80px; border-radius: 50%; border: 3px solid #ffd700; box-shadow: 0 0 20px rgba(255,215,0,0.5);">
             </div>
             <h2 id="vip-title" style="margin: 16px 0; color: #d32f2f; font-weight: 800; font-size: 1.5rem; text-align:center;">
-                ĐẶC QUYỀN THẺ SAPHIRA VIP
+                ĐẶC QUYỀN THẺ SAPHIRE VIP
             </h2>
             <div id="vip-content-box" style="background: #fff8e1; border-left: 4px solid #ffb300; padding: 16px; margin: 20px 0; border-radius: 0 8px 8px 0; text-align: left; font-size: 1rem; line-height: 1.8;"></div>
             <div style="background: #f3e5f5; border-left: 4px solid #8e24aa; padding: 16px; margin: 20px 0; border-radius: 0 8px 8px 0; text-align: left; font-size: 1rem; line-height: 1.8;">
@@ -666,7 +666,7 @@
         <h3 class="contact-title">Thông tin liên hệ</h3>
         <div class="contact-item">
             <span class="contact-icon">Địa chỉ:</span>
-            <span>Số 10B,đường Trần Hoàng Na, Khu dân cư Hồng Phát, P. Ninh Kiều, Cần Thơ</span>
+            <span>Số 10B,đường Trần Hoàng Na, Khu dân cư Hồng Phát, P. An Bình, Cần Thơ</span>
         </div>
         <div class="contact-item">
             <span class="contact-icon">Hotline:</span>
@@ -674,7 +674,7 @@
         </div>
         <div class="contact-item">
             <span class="contact-icon">Giờ mở cửa:</span>
-            <span>10:00 – 19:00 (hàng ngày)</span>
+            <span>10:00 – 23:00 (hàng ngày)</span>
         </div>
     </div>
     <div class="footer">
@@ -775,7 +775,8 @@
         coverBack.innerHTML = `
             <div style="display:flex; align-items:center; justify-content:center; height:100%; background:#f8f5e8; padding:40px; text-align:center;">
                 <p style="color:#8B6914; font-size:1.3rem; font-weight:600; line-height:1.8;">
-                    Chào mừng quý khách<br>đến với<br><span style="color:#d32f2f; font-size:1.6rem; font-weight:800;">MENU ĐẶC BIỆT</span><br>của chúng tôi
+                 NHÀ HÀNG HỒ BƠI HỒNG PHÁT<br><span style="color:#d32f2f; font-size:1.6rem; font-weight:800;">CHÚC QUÝ KHÁCH NGON MIỆNG</span>
+
                 </p>
             </div>
         `;
@@ -821,7 +822,7 @@
                     <p style="font-size:1.1rem; margin-bottom:12px; font-weight:600;">📞 Hotline:</p>
                     <p style="font-size:1.3rem; font-weight:800; margin-bottom:20px;">0901 273 222</p>
                     <p style="font-size:1.1rem; margin-bottom:12px; font-weight:600;">🕐 Giờ mở cửa:</p>
-                    <p style="font-size:0.95rem;">10:00 – 19:00 (Hàng ngày)</p>
+                    <p style="font-size:0.95rem;">10:00 – 23:00 (Hàng ngày)</p>
                 </div>
                 <p style="font-size:0.9rem; font-style:italic; opacity:0.9;">Hẹn gặp lại quý khách!</p>
             </div>
