@@ -50,13 +50,13 @@
             font-weight: 800;
             margin-bottom: 16px;
             letter-spacing: -0.02em;
-            background: linear-gradient(45deg, #ffd700, #ffea00, #ffb800, #ff9500, #ffd700, #ffea00);
+            background: linear-gradient(45deg, #0f3460, #4169e1, #1e90ff, #00bfff, #0f3460, #4169e1);
             background-size: 400% 400%;
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
             animation: fadeIn 1s ease-out 0.4s both, gradientText 8s ease infinite;
-            text-shadow: 0 4px 15px rgba(255, 215, 0, 0.4);
+            text-shadow: 0 4px 15px rgba(65, 105, 225, 0.4);
         }
         @keyframes gradientText { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
         .subtitle { font-size: 1.25rem; color: white; margin-bottom: 24px; font-weight: 400; animation: fadeIn 1s ease-out 0.5s both; }
@@ -81,9 +81,9 @@
         .social-icon img { width: 48px; height: 48px; border-radius: 12px; }
         .social-title { font-size: 1.125rem; font-weight: 600; color: #1f2937; margin-bottom: 8px; }
         .social-description { font-size: 0.875rem; color: #6b7280; font-weight: 400; }
-        .vip-card { background: linear-gradient(135deg, rgba(255, 193, 0, 0.92), rgba(255, 223, 0, 0.92)); color: #1a1a1a; border: 1px solid rgba(255, 215, 0, 0.5); }
+        .vip-card { background: linear-gradient(135deg, rgba(15, 52, 96, 0.92), rgba(65, 105, 225, 0.92)); color: #ffffff; border: 1px solid rgba(65, 105, 225, 0.5); }
         .vip-card .social-title, .vip-card .social-description { color: #ffffff !important; font-weight: 400 !important; -webkit-text-fill-color: #ffffff !important; text-shadow: 0 2px 8px rgba(0,0,0,0.5) !important; }
-        .vip-card:hover { background: linear-gradient(135deg, rgba(255, 193, 0, 0.98), rgba(255, 223, 0, 0.98)) !important; box-shadow: 0 20px 40px rgba(255, 179, 0, 0.4) !important; border: 1px solid rgba(255, 215, 0, 0.8) !important; }
+        .vip-card:hover { background: linear-gradient(135deg, rgba(15, 52, 96, 0.98), rgba(65, 105, 225, 0.98)) !important; box-shadow: 0 20px 40px rgba(65, 105, 225, 0.4) !important; border: 1px solid rgba(65, 105, 225, 0.8) !important; }
         .map-card { background: linear-gradient(135deg, rgba(34, 139, 34, 0.95), rgba(50, 205, 50, 0.95)); color: white; }
         .map-card .social-title, .map-card .social-description { color: white; }
         .map-card:hover { background: linear-gradient(135deg, rgba(34, 139, 34, 0.98), rgba(50, 205, 50, 0.98)) !important; }
@@ -536,6 +536,7 @@
                 top: 8px;
                 right: 8px;
             }
+
         }
     </style>
 </head>
