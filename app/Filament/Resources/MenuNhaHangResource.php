@@ -16,6 +16,7 @@ class MenuNhaHangResource extends Resource
     protected static ?string $model = MenuNhaHang::class;
     protected static ?string $navigationIcon = 'heroicon-o-photo';
     protected static ?string $navigationLabel = 'Menu Nhà Hàng';
+    protected static ?string $navigationGroup = 'Nhà Hàng Hồ Bơi';
     protected static ?int $navigationSort = 3;
 
     public static function form(Form $form): Form
