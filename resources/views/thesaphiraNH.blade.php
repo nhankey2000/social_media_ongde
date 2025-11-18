@@ -982,7 +982,7 @@
         const contentBox = document.getElementById('vip-content-box');
         const expirySpan = document.getElementById('vip-expiry-date');
 
-        contentBox.innerHTML = '<p style="margin:0; color:#b71c1c;"><strong>Đang tải ưu đãi SAPHIRA...</strong></p>';
+        contentBox.innerHTML = '<p style="margin:0; color:#b71c1c;"><strong>Đang tải ưu đãi SAPHIRE...</strong></p>';
         expirySpan.textContent = 'Đang tải...';
 
         fetch(`${window.location.origin}/api/vip-card/info`)
@@ -997,8 +997,7 @@
 
                 // ƯU TIÊN LẤY THẺ SAPPHIRE (SAPHIRA VIP)
                 const saphiraCard = result.data.find(card =>
-                    card.type.toUpperCase() === 'SAPPHIRE' ||
-                    card.type.toUpperCase() === 'SAPHIRA'
+                    card.type.toUpperCase() === 'SAPPHIRE'
                 );
 
                 // Nếu không có thì lấy DIAMOND → GOLD (dự phòng)
@@ -1009,7 +1008,7 @@
 
                 // Cố định hiển thị SAPHIRA nếu là SAPPHIRE
                 const isSaphira = card.type.toUpperCase() === 'SAPPHIRE' || card.type.toUpperCase() === 'SAPHIRA';
-                document.getElementById('vip-title').textContent = isSaphira ? 'ĐẶC QUYỀN THẺ SAPHIRA VIP' : 'ĐẶC QUYỀN THẺ ' + card.type + ' VIP';
+                document.getElementById('vip-title').textContent = isSaphira ? 'ĐẶC QUYỀN THẺ SAPHIRE VIP' : 'ĐẶC QUYỀN THẺ ' + card.type + ' VIP';
 
                 // Nội dung ưu đãi – giữ nguyên kiểu GOLD
                 if (contentBox && card.content) {
