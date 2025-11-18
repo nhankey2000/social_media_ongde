@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>NHÀ HÀNG HỒ BƠI - GOLD VIP CARD</title>
+    <title>NHÀ HÀNG HỒ BƠI - SAPHIRA VIP CARD</title>
     <link rel="icon" href="images/favicon.ico" type="image/x-icon">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
