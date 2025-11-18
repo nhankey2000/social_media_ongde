@@ -18,6 +18,9 @@ use App\Models\License;
 use App\Http\Controllers\KhuVuonMaQuaiController;
 use App\Http\Controllers\SoTayChanNuoiController;
 use App\Http\Controllers\BanhXeoCoTuController;
+use App\Http\Controllers\TheGoldNHController;
+use App\Http\Controllers\TheSaphiraNHController;
+use App\Http\Controllers\TheDiamondNHController;
 use App\Http\Controllers\DulieuTruyenThongController;
 use App\Http\Controllers\DulieuTruyenThongBXController;
 use App\Models\DataPost;
@@ -73,15 +76,13 @@ Route::get('/menu-ong-de', [App\Http\Controllers\MenuOngDeController::class, 'sh
 Route::get('/khu-vuon-ma-quai', [KhuVuonMaQuaiController::class, 'index'])->name('khuvuonmaquai');
 Route::get('/so-tay-chan-nuoi', [SoTayChanNuoiController::class, 'index'])->name('sotaychannuoi');
 Route::get('/banh-xeo-co-tu', [BanhXeoCoTuController::class, 'index'])->name('banhxeocotu');
-
+Route::get('/Card-Gold-NH', [TheGoldNHController::class, 'index'])->name('thegoldnh');
+Route::get('/Card-Saphira-NH', [TheSaphiraNHController::class, 'index'])->name('thesaphiranh');
+Route::get('/Card-Diamond-NH', [TheDiamondNHController::class, 'index'])->name('thediamondnh');
 Route::post('/files', [FileController::class, 'store'])->name('files.store');
 Route::get('/files/{filename}/download', [FileController::class, 'download'])->name('files.download'); // Thay {id} bằng {filename}
 Route::delete('/files/{filename}', [FileController::class, 'destroy'])->name('files.destroy'); // Thay {id} bằng {filename}
-/*
-|--------------------------------------------------------------------------
-| License Management Routes (New System)
-|--------------------------------------------------------------------------
-*/
+
 
 // API kiểm tra bản quyền - cho Python client
 Route::get('/check-key', function (Request $request) {
@@ -762,4 +763,53 @@ Route::get('/api/images-menu-ongde', function (Request $request) {
             'message' => 'Lỗi tải dữ liệu: ' . $e->getMessage()
         ], 500);
     }
+
+
+});
+Route::get('/api/vip-card/info', function () {
+    $vipCards = \App\Models\VipCard::where('status', true)
+        ->where('expiry_date', '>=', now()->toDateString())
+        ->orderByRaw("FIELD(type, 'PLATINUM', 'SILVER', 'GOLD')")
+        ->get(); // ← LẤY TẤT CẢ
+
+    if ($vipCards->isEmpty()) {
+        return response()->json(['success' => false]);
+    }
+
+    $data = $vipCards->map(function ($card) {
+        return [
+            'type' => $card->type, // PLATINUM, SILVER, GOLD
+            'content' => $card->content,
+            'expiry_date' => \Carbon\Carbon::parse($card->expiry_date)->format('d/m/Y'),
+        ];
+    });
+
+    return response()->json([
+        'success' => true,
+        'data' => $data->toArray() // ← TRẢ VỀ MẢNG
+    ]);
+});
+Route::get('/api/menu-nha-hang', function () {
+    // LẤY RAW DATA – BỎ QUA ACCESSOR
+    $images = \App\Models\MenuNhaHang::orderBy('sort_order', 'asc')
+        ->get(['id', 'img', 'sort_order']) // chỉ lấy cột cần
+        ->map(function ($item) {
+            $path = $item->getRawOriginal('img'); // ← QUAN TRỌNG: lấy giá trị gốc trong DB, không qua accessor
+
+            return [
+                'id'    => $item->id,
+                'url'   => $path ? asset('storage/' . $path) : null,
+                'order' => $item->sort_order,
+            ];
+        })
+        ->filter(function ($item) {
+            return $item['url'] !== null; // loại bỏ nếu path rỗng
+        })
+        ->values();
+
+    return response()->json([
+        'success' => true,
+        'total'   => $images->count(),
+        'data'    => $images
+    ]);
 });

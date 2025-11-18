@@ -16,6 +16,8 @@ use App\Filament\Resources\ImageMenuResource;
 use App\Filament\Resources\ImagesDataResource;
 use App\Filament\Resources\MenuCategoryResource;
 use App\Filament\Resources\UserResource;
+use App\Filament\Resources\MenuNhaHangResource;
+use App\Models\MenuNhaHang;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
@@ -32,7 +34,7 @@ use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Session\Middleware\StartSession;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
 use App\Filament\Resources\MessageResource;
-
+use App\Filament\Resources\VipCardResource;
 // Thêm import cho MessageResource
 use App\Filament\Resources\PlatformAccountResource;
 
@@ -70,7 +72,9 @@ class AdminPanelProvider extends PanelProvider
                 UserResource::class,
                 DataImagesBXResource::class,
                 DataImagesNHResource::class,
-                ImagesDataResource::class
+                ImagesDataResource::class,
+                VipCardResource::class,
+                MenuNhaHangResource::class
             ])
 //
 //            ->viteTheme('resources/css/filament/theme.css')

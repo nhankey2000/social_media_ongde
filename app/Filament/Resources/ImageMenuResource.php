@@ -24,7 +24,7 @@ class ImageMenuResource extends Resource
 
     protected static ?string $pluralModelLabel = 'Ảnh Menu';
 
-    protected static ?string $navigationGroup = 'Quản lý Menu';
+    protected static ?string $navigationGroup = 'Quản lý Menu Ông Đề';
 
     protected static ?int $navigationSort = 2;
 
