@@ -11,6 +11,6 @@ class TheGoldNHController extends Controller
      */
     public function index()
     {
-        return view('TheGoldNH'); // Bỏ 'licenses.'
+        return view('thegoldNH'); // Bỏ 'licenses.'
     }
 }

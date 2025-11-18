@@ -11,6 +11,6 @@ class TheDiamondNHController extends Controller
      */
     public function index()
     {
-        return view('TheDiamondNH'); // Bỏ 'licenses.'
+        return view('thediamondNH'); // Bỏ 'licenses.'
     }
 }

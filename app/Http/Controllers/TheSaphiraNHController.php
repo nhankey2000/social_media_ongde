@@ -11,6 +11,6 @@ class TheSaphiraNHController extends Controller
      */
     public function index()
     {
-        return view('TheSaphiraNH'); // Bỏ 'licenses.'
+        return view('thesaphiraNH'); // Bỏ 'licenses.'
     }
 }
