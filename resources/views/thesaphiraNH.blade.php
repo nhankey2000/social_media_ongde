@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>NHÀ HÀNG HỒ BƠI - SAPHIRE VIP CARD</title>
+    <title>NHÀ HÀNG HỒ BƠI - SAPPHIRE VIP CARD</title>
     <link rel="icon" href="images/favicon.ico" type="image/x-icon">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -548,7 +548,7 @@
         </div>
     </div>
 
-    <h1 class="main-title">SAPHIRE VIP CARD</h1>
+    <h1 class="main-title">SAPPHIRE VIP CARD</h1>
     <p class="subtitle">NHÀ HÀNG HỒ BƠI HỒNG PHÁT - HẢI SẢN TƯƠI SỐNG & MÓN ĂN ĐỒNG QUÊ</p>
     <p class="description">
         Thưởng thức hải sản tươi rói chế biến tại chỗ cùng các món đồng quê đậm vị miền Tây. Không gian hồ bơi thoáng mát, thích hợp tổ chức tiệc tất niên, sinh nhật, họp mặt và liên hoan gia đình.
@@ -559,8 +559,8 @@
             <div class="social-icon">
                 <img src="images/saphira.png" alt="Đặc Quyền VIP" loading="lazy">
             </div>
-            <div class="social-title">Đặc Quyền VIP SAPHIRE</div>
-            <div class="social-description">Ưu đãi độc quyền cho thành viên SAPHIRE</div>
+            <div class="social-title">Đặc Quyền VIP SAPPHIRE</div>
+            <div class="social-description">Ưu đãi độc quyền cho thành viên SAPPHIRE</div>
         </div>
 
         <a href="#" onclick="showMenu(); return false;" class="social-card menu-card">
@@ -611,10 +611,10 @@
         <div style="max-width: 500px; background: white; border-radius: 16px; padding: 20px; position: relative; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);">
             <span class="close-button" onclick="hideVip()">×</span>
             <div style="margin-bottom: 20px; text-align:center;">
-                <img id="vip-image" src="images/vipgold.png" alt="SAPHIRA VIP" style="width: 80px; height: 80px; border-radius: 50%; border: 3px solid #ffd700; box-shadow: 0 0 20px rgba(255,215,0,0.5);">
+                <img id="vip-image" src="images/vipgold.png" alt="SAPPHIRA VIP" style="width: 80px; height: 80px; border-radius: 50%; border: 3px solid #ffd700; box-shadow: 0 0 20px rgba(255,215,0,0.5);">
             </div>
             <h2 id="vip-title" style="margin: 16px 0; color: #d32f2f; font-weight: 800; font-size: 1.5rem; text-align:center;">
-                ĐẶC QUYỀN THẺ SAPHIRE VIP
+                ĐẶC QUYỀN THẺ SAPPHIRE VIP
             </h2>
             <div id="vip-content-box" style="background: #fff8e1; border-left: 4px solid #ffb300; padding: 16px; margin: 20px 0; border-radius: 0 8px 8px 0; text-align: left; font-size: 1rem; line-height: 1.8;"></div>
             <div style="background: #f3e5f5; border-left: 4px solid #8e24aa; padding: 16px; margin: 20px 0; border-radius: 0 8px 8px 0; text-align: left; font-size: 1rem; line-height: 1.8;">
@@ -1000,15 +1000,15 @@
                     card.type.toUpperCase() === 'SAPPHIRE'
                 );
 
-                // Nếu không có thì lấy DIAMOND → GOLD (dự phòng)
-                const fallbackCard = saphiraCard || result.data.find(c => c.type === 'DIAMOND') || result.data.find(c => c.type === 'GOLD');
+                // // Nếu không có thì lấy DIAMOND → GOLD (dự phòng)
+                // const fallbackCard = saphiraCard || result.data.find(c => c.type === 'DIAMOND') || result.data.find(c => c.type === 'GOLD');
                 if (!fallbackCard) throw new Error('Không có thẻ VIP');
 
                 const card = fallbackCard;
 
                 // Cố định hiển thị SAPHIRA nếu là SAPPHIRE
-                const isSaphira = card.type.toUpperCase() === 'SAPPHIRE' || card.type.toUpperCase() === 'SAPHIRA';
-                document.getElementById('vip-title').textContent = isSaphira ? 'ĐẶC QUYỀN THẺ SAPHIRE VIP' : 'ĐẶC QUYỀN THẺ ' + card.type + ' VIP';
+                const isSaphira = card.type.toUpperCase() === 'SAPPHIRE' || card.type.toUpperCase() === 'SAPPHIRE';
+                document.getElementById('vip-title').textContent = isSaphira ? 'ĐẶC QUYỀN THẺ SAPPHIRE VIP' : 'ĐẶC QUYỀN THẺ ' + card.type + ' VIP';
 
                 // Nội dung ưu đãi – giữ nguyên kiểu GOLD
                 if (contentBox && card.content) {

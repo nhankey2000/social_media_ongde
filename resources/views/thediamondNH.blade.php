@@ -574,7 +574,7 @@
             <div class="social-icon">
                 <img src="images/vip-diamond.png" alt="Đặc Quyền VIP" loading="lazy">
             </div>
-            <div class="social-title">Đặc Quyền VIP DIAMIND</div>
+            <div class="social-title">Đặc Quyền VIP DIAMOND</div>
             <div class="social-description">Ưu đãi độc quyền cho thành viên DIAMOND</div>
         </div>
 
@@ -1014,9 +1014,9 @@
                 const diamondCard = result.data.find(card => card.type.toUpperCase() === 'DIAMOND');
 
                 // Nếu không có DIAMOND thì lấy SAPPHIRE → GOLD (dự phòng)
-                const card = diamondCard ||
-                    result.data.find(c => c.type.toUpperCase() === 'SAPPHIRE') ||
-                    result.data.find(c => c.type === 'GOLD');
+                // const card = diamondCard ||
+                //     result.data.find(c => c.type.toUpperCase() === 'SAPPHIRE') ||
+                //     result.data.find(c => c.type === 'GOLD');
 
                 if (!card) throw new Error('Không có thẻ');
 

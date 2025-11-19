@@ -1038,7 +1038,7 @@
             })
             .catch(err => {
                 console.error('Lỗi VIP:', err);
-                contentBox.innerHTML = '<p style="margin:0; color:#d32f2f;"><strong>ƯU ĐÃI ĐÃ HẾT HẠN</strong></p>';
+                contentBox.innerHTML = '<p style="margin:0; color:#d32f2f;"><strong>THẺ GOLD CHƯA KÍCH HOẠT</strong></p>';
                 expirySpan.textContent = '—';
             });
     }
