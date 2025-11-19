@@ -626,7 +626,7 @@
         <div style="max-width: 500px; background: white; border-radius: 16px; padding: 20px; position: relative; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);">
             <span class="close-button" onclick="hideVip()">×</span>
             <div style="margin-bottom: 20px; text-align:center;">
-                <img id="vip-image" src="images/vipgold.png" alt="SAPHIRA VIP" style="width: 80px; height: 80px; border-radius: 50%; border: 3px solid #ffd700; box-shadow: 0 0 20px rgba(255,215,0,0.5);">
+                <img id="vip-image" src="images/vip-diamond.png" alt="SAPHIRA VIP" style="width: 80px; height: 80px; border-radius: 50%; border: 3px solid #ffd700; box-shadow: 0 0 20px rgba(255,215,0,0.5);">
             </div>
             <h2 id="vip-title" style="margin: 16px 0; color: #d32f2f; font-weight: 800; font-size: 1.5rem; text-align:center;">
                 ĐẶC QUYỀN THẺ DIAMOND VIP
