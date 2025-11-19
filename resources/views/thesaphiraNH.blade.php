@@ -9,9 +9,11 @@
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: linear-gradient(-45deg, #1e1e1e, #2d1b0a, #3f2b16, #5c3f1f, #8B6914, #b8860b);
-            background-size: 400% 400%;
-            animation: gradientShift 15s ease infinite;
+            background: url('images/backgroundNH.jpg') center center / cover no-repeat fixed;
+
+            /* Màu dự phòng nếu ảnh không load được */
+            background-color: #0f0f0f;
+
             min-height: 100vh;
             display: flex;
             flex-direction: column;
@@ -23,14 +25,30 @@
             position: relative;
             overflow-x: hidden;
         }
-        @keyframes gradientShift { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
+
+        /* Lớp phủ tối nhẹ để chữ trắng luôn nổi bật trên mọi ảnh nền */
         body::before {
-            content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            background-image: radial-gradient(circle at 20% 80%, rgba(255,255,255,0.1) 0%, transparent 50%),
-            radial-gradient(circle at 80% 20%, rgba(255,255,255,0.08) 0%, transparent 50%),
-            radial-gradient(circle at 40% 40%, rgba(255,255,255,0.06) 0%, transparent 50%);
-            animation: floatParticles 12s ease-in-out infinite; pointer-events: none;
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0, 0, 0, 0.5);  /* điều chỉnh 0.4 → 0.6 tùy độ sáng ảnh */
+            pointer-events: none;
+            z-index: 0;
         }
+
+        /* Đảm bảo nội dung nằm trên lớp phủ */
+        body > * {
+            position: relative;
+            z-index: 1;
+        }
+        @keyframes gradientShift { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
+        /*body::before {*/
+        /*    content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 100%;*/
+        /*    background-image: radial-gradient(circle at 20% 80%, rgba(255,255,255,0.1) 0%, transparent 50%),*/
+        /*    radial-gradient(circle at 80% 20%, rgba(255,255,255,0.08) 0%, transparent 50%),*/
+        /*    radial-gradient(circle at 40% 40%, rgba(255,255,255,0.06) 0%, transparent 50%);*/
+        /*    animation: floatParticles 12s ease-in-out infinite; pointer-events: none;*/
+        /*}*/
         @keyframes floatParticles { 0%, 100% { transform: translateY(0) rotate(0deg); opacity: 0.7; } 50% { transform: translateY(-20px) rotate(120deg); opacity: 1; } }
         body::after {
             content: ''; position: absolute; top: 50%; left: 50%; width: 200px; height: 200px;
