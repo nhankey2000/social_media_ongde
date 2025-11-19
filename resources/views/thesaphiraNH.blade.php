@@ -995,22 +995,21 @@
                     throw new Error('Dữ liệu không hợp lệ');
                 }
 
-                // ƯU TIÊN LẤY THẺ SAPPHIRE (SAPHIRA VIP)
+                // CHỈ LẤY THẺ SAPPHIRE (không fallback)
                 const saphiraCard = result.data.find(card =>
                     card.type.toUpperCase() === 'SAPPHIRE'
                 );
 
-                // // Nếu không có thì lấy DIAMOND → GOLD (dự phòng)
-                // const fallbackCard = saphiraCard || result.data.find(c => c.type === 'DIAMOND') || result.data.find(c => c.type === 'GOLD');
-                if (!fallbackCard) throw new Error('Không có thẻ VIP');
+                if (!saphiraCard) {
+                    throw new Error('Không có thẻ SAPPHIRE');
+                }
 
-                const card = fallbackCard;
+                const card = saphiraCard;
 
-                // Cố định hiển thị SAPHIRA nếu là SAPPHIRE
-                const isSaphira = card.type.toUpperCase() === 'SAPPHIRE' || card.type.toUpperCase() === 'SAPPHIRE';
-                document.getElementById('vip-title').textContent = isSaphira ? 'ĐẶC QUYỀN THẺ SAPPHIRE VIP' : 'ĐẶC QUYỀN THẺ ' + card.type + ' VIP';
+                // Bắt buộc là SAPPHIRE nên cố định tiêu đề
+                document.getElementById('vip-title').textContent = 'ĐẶC QUYỀN THẺ SAPPHIRE VIP';
 
-                // Nội dung ưu đãi – giữ nguyên kiểu GOLD
+                // Nội dung ưu đãi
                 if (contentBox && card.content) {
                     const temp = document.createElement('div');
                     temp.innerHTML = card.content;
@@ -1035,6 +1034,7 @@
             .catch(err => {
                 console.error('Lỗi VIP:', err);
                 contentBox.innerHTML = '<p style="margin:0; color:#d32f2f;"><strong>THẺ SAPHIRA CHƯA KÍCH HOẠT</strong></p>';
+                document.getElementById('vip-title').textContent = 'ĐẶC QUYỀN THẺ SAPPHIRE VIP';
                 expirySpan.textContent = '—';
             });
     }

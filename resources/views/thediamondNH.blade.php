@@ -1010,31 +1010,27 @@
                     throw new Error('Dữ liệu không hợp lệ');
                 }
 
-                // ƯU TIÊN LẤY THẺ DIAMOND
-                const diamondCard = result.data.find(card => card.type.toUpperCase() === 'DIAMOND');
+                // CHỈ LẤY THẺ DIAMOND – KHÔNG FALLBACK
+                const diamondCard = result.data.find(card =>
+                    card.type.toUpperCase() === 'DIAMOND'
+                );
 
-                // Nếu không có DIAMOND thì lấy SAPPHIRE → GOLD (dự phòng)
-                // const card = diamondCard ||
-                //     result.data.find(c => c.type.toUpperCase() === 'SAPPHIRE') ||
-                //     result.data.find(c => c.type === 'GOLD');
+                if (!diamondCard) {
+                    throw new Error('Không có thẻ DIAMOND');
+                }
 
-                if (!card) throw new Error('Không có thẻ');
+                const card = diamondCard;
 
-                // Tiêu đề
+                // Tiêu đề cố định cho DIAMOND
                 document.getElementById('vip-title').textContent = 'ĐẶC QUYỀN THẺ DIAMOND VIP';
 
-                // Ảnh thẻ DIAMOND (đổi tên ảnh ở đây nếu muốn)
-                document.getElementById('vip-image').src = 'images/vip-diamond.png';
-                // Nếu chưa có ảnh mới thì cứ để ảnh cũ cũng được:
-                // document.getElementById('vip-image').src = 'images/vipgold.png';
-
-                // Nội dung ưu đãi – KHÔNG IN ĐẬM, KHÔNG LÀM NỔI BẬT, GIỮ NGUYÊN KIỂU GOLD
+                // Nội dung ưu đãi (giữ kiểu nhẹ nhàng như bạn muốn)
                 if (contentBox && card.content) {
                     const temp = document.createElement('div');
                     temp.innerHTML = card.content;
 
-                    // Chỉ đổi màu đỏ như GOLD, không thêm style in đậm hay to chữ
-                    temp.querySelectorAll('p, em, strong').forEach(el => {
+                    // Chỉ đổi màu đỏ, không làm đậm hay to chữ thêm
+                    temp.querySelectorAll('p, strong, em').forEach(el => {
                         el.style.color = '#b71c1c';
                     });
 
@@ -1042,11 +1038,14 @@
                 }
 
                 // Ngày hết hạn
-                expirySpan.innerHTML = `Đến hết ngày <u>${card.expiry_date || 'Vĩnh viễn'}</u>`;
+                expirySpan.innerHTML = `Đến hết ngày <u style="color:#d32f2f;">${card.expiry_date || 'Vĩnh viễn'}</u>`;
             })
             .catch(err => {
-                console.error('Lỗi VIP:', err);
-                contentBox.innerHTML = '<p style="margin:0; color:#d32f2f;"><strong>THẺ DIAMOND CHƯA KÍCH HOẠT</strong></p>';
+                console.error('Lỗi VIP DIAMOND:', err);
+
+                // Khi không có DIAMOND hoặc lỗi → báo chưa kích hoạt
+                document.getElementById('vip-title').textContent = 'ĐẶC QUYỀN THẺ DIAMOND VIP';
+                contentBox.innerHTML = '<p style="margin:0; color:#d32f2f; font-size:1.1em;"><strong>THẺ DIAMOND CHƯA KÍCH HOẠT</strong></p>';
                 expirySpan.textContent = '—';
             });
     }
