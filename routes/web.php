@@ -815,20 +815,6 @@ Route::get('/api/menu-nha-hang', function () {
     ]);
 });
 
-/*
-|--------------------------------------------------------------------------
-| Web Routes
-|--------------------------------------------------------------------------
-*/
-
-// Các routes có sẵn của bạn ở đây...
-
-/*
-|--------------------------------------------------------------------------
-| Telegram Bot Routes
-|--------------------------------------------------------------------------
-*/
-
 /**
  * Telegram Webhook Endpoint
  */
@@ -852,7 +838,7 @@ Route::post('/webhook/telegram', function (Request $request) {
             'error' => $e->getMessage()
         ], 500);
     }
-});
+})->withoutMiddleware([\App\Http\Middleware\VerifyCsrfToken::class]);
 
 /**
  * Set Telegram Webhook
