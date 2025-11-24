@@ -16,6 +16,8 @@ use App\Filament\Resources\ImageMenuResource;
 use App\Filament\Resources\ImagesDataResource;
 use App\Filament\Resources\MenuCategoryResource;
 use App\Filament\Resources\UserResource;
+use App\Filament\Resources\ReportResource;
+use App\Filament\Resources\LocationResource;
 use App\Filament\Resources\MenuNhaHangResource;
 use App\Models\MenuNhaHang;
 use Filament\Http\Middleware\Authenticate;
@@ -74,7 +76,9 @@ class AdminPanelProvider extends PanelProvider
                 DataImagesNHResource::class,
                 ImagesDataResource::class,
                 VipCardResource::class,
-                MenuNhaHangResource::class
+                MenuNhaHangResource::class,
+                LocationResource::class,
+                ReportResource::class,
             ])
 //
 //            ->viteTheme('resources/css/filament/theme.css')

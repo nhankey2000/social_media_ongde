@@ -34,6 +34,33 @@ return [
             'channel' => env('SLACK_BOT_USER_DEFAULT_CHANNEL'),
         ],
     ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Telegram Bot Configuration
+    |--------------------------------------------------------------------------
+    */
+
+    'telegram' => [
+        'bot_token' => env('TELEGRAM_BOT_TOKEN'),
+        'admin_id' => env('TELEGRAM_ADMIN_ID'),
+        'webhook_url' => env('TELEGRAM_WEBHOOK_URL'),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | OpenAI Configuration
+    |--------------------------------------------------------------------------
+    */
+
+    'openai' => [
+        'api_key' => env('OPENAI_API_KEY'),
+        'model' => env('OPENAI_MODEL', 'gpt-3.5-turbo'),
+        'temperature' => env('OPENAI_TEMPERATURE', 0.3),
+        'max_tokens' => env('OPENAI_MAX_TOKENS', 500),
+    ],
+
+
     'facebook' => [
     'client_id' => env('FACEBOOK_APP_ID'),
     'client_secret' => env('FACEBOOK_APP_SECRET'),
