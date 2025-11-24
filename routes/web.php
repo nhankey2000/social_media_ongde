@@ -815,6 +815,7 @@ Route::get('/api/menu-nha-hang', function () {
     ]);
 });
 
+
 /**
  * Telegram Webhook Endpoint
  */
@@ -838,7 +839,7 @@ Route::post('/webhook/telegram', function (Request $request) {
             'error' => $e->getMessage()
         ], 500);
     }
-})->withoutMiddleware([\App\Http\Middleware\VerifyCsrfToken::class]);
+});
 
 /**
  * Set Telegram Webhook
