@@ -814,16 +814,20 @@ Route::get('/api/menu-nha-hang', function () {
         'data'    => $images
     ]);
 });
-// CRITICAL: Telegram webhook - Must be first!
+// CRITICAL: Telegram webhook - Must be RAW POST + NO throttle + NO CSRF
 Route::post('/webhook/telegram', function (Request $request) {
     try {
         $update = $request->all();
         \Log::info('Telegram webhook received', $update);
+
         $service = new TelegramBotService();
         $service->handleWebhook($update);
-        return response()->json(['ok' => true]);
+
+        return response()->json(['ok' => true], 200);
     } catch (\Exception $e) {
-        \Log::error('Telegram webhook error: ' . $e->getMessage());
-        return response()->json(['ok' => false, 'error' => $e->getMessage()], 500);
+        \Log::error('Telegram webhook error: ' . $e->getMessage(), [
+            'trace' => $e->getTraceAsString()
+        ]);
+        return response()->json(['ok' => false, 'error' => $e->getMessage()], 200); // vẫn 200!
     }
-})->middleware('api');  // ← Dùng api middleware (không có CSRF)
+})->withoutMiddleware([\App\Http\Middleware\VerifyCsrfToken::class, 'throttle:api']);
