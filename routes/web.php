@@ -814,20 +814,24 @@ Route::get('/api/menu-nha-hang', function () {
         'data'    => $images
     ]);
 });
-// CRITICAL: Telegram webhook - Must be RAW POST + NO throttle + NO CSRF
+
+use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
+
 Route::post('/webhook/telegram', function (Request $request) {
     try {
-        $update = $request->all();
-        \Log::info('Telegram webhook received', $update);
+        \Log::info('Telegram webhook received', $request->all());
 
-        $service = new TelegramBotService();
-        $service->handleWebhook($update);
+        $service = new \App\Services\TelegramBotService();
+        $service->handleWebhook($request->all());
 
         return response()->json(['ok' => true], 200);
-    } catch (\Exception $e) {
+    } catch (\Throwable $e) {
         \Log::error('Telegram webhook error: ' . $e->getMessage(), [
             'trace' => $e->getTraceAsString()
         ]);
-        return response()->json(['ok' => false, 'error' => $e->getMessage()], 200); // vẫn 200!
+        return response()->json(['ok' => true], 200); // vẫn trả 200
     }
-})->withoutMiddleware([\App\Http\Middleware\VerifyCsrfToken::class, 'throttle:api']);
+})->withoutMiddleware([
+    VerifyCsrfToken::class,
+    'throttle:api'
+]);
