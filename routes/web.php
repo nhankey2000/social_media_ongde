@@ -815,9 +815,21 @@ Route::get('/api/menu-nha-hang', function () {
     ]);
 });
 
+
 use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
 
-Route::post('/webhook/telegram', function (Request $request) {
+// Xử lý cả GET (Telegram kiểm tra) và POST (nhận tin thật)
+Route::match(['get', 'post'], '/webhook/telegram', function (Request $request) {
+    // Nếu Telegram gọi GET để kiểm tra webhook → trả 200 ngay
+    if ($request->isMethod('get')) {
+        return response()->json([
+            'ok' => true,
+            'message' => 'Telegram webhook is active and ready!',
+            'time' => now()->toDateTimeString(),
+        ], 200);
+    }
+
+    // Xử lý POST thật từ Telegram
     try {
         \Log::info('Telegram webhook received', $request->all());
 
@@ -826,12 +838,15 @@ Route::post('/webhook/telegram', function (Request $request) {
 
         return response()->json(['ok' => true], 200);
     } catch (\Throwable $e) {
-        \Log::error('Telegram webhook error: ' . $e->getMessage(), [
-            'trace' => $e->getTraceAsString()
+        \Log::error('Telegram webhook CRITICAL error: ' . $e->getMessage(), [
+            'trace' => $e->getTraceAsString(),
+            'update' => $request->all(),
         ]);
-        return response()->json(['ok' => true], 200); // vẫn trả 200
+
+        // Dù có lỗi gì cũng trả 200 → Telegram không gửi lại nữa
+        return response()->json(['ok' => true], 200);
     }
 })->withoutMiddleware([
     VerifyCsrfToken::class,
-    'throttle:api'
+    'throttle:api',    // bỏ rate limit
 ]);
