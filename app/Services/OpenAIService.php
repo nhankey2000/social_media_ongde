@@ -11,15 +11,7 @@ class OpenAIService
 
     public function __construct()
     {
-        // FIX: Sử dụng config thay vì hardcode
-        $apiKey = config('services.openai.api_key');
-
-        if (empty($apiKey)) {
-            Log::error('OpenAI API key is missing in config');
-            throw new \Exception('OpenAI API key not configured');
-        }
-
-        $this->client = OpenAI::client($apiKey);
+        $this->client = OpenAI::client(config('services.openai.api_key'));
     }
 
     /**
@@ -88,8 +80,8 @@ PHONG CÁCH:
     protected function getFallbackResponse(): string
     {
         return "Đã nhận được báo cáo. Hệ thống AI tạm thời quá tải, " .
-            "TGĐ AI sẽ phản hồi chi tiết trong vòng 15 phút. " .
-            "Nếu khẩn cấp, vui lòng liên hệ hotline.";
+               "TGĐ AI sẽ phản hồi chi tiết trong vòng 15 phút. " .
+               "Nếu khẩn cấp, vui lòng liên hệ hotline.";
     }
 
     /**
