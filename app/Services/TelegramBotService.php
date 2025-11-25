@@ -8,6 +8,7 @@ use App\Models\Report;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
+
 class TelegramBotService
 {
     protected BotApi $bot;
@@ -27,11 +28,11 @@ class TelegramBotService
     public function handleWebhook(array $update): void
     {
         try {
-            // Log raw update để debug
-            Log::info('Telegram webhook received', ['update' => $update]);
+            // ⭐ THÊM LOG NÀY
+            \Log::info('=== WEBHOOK HANDLER STARTED ===', ['update' => $update]);
 
             if (!isset($update['message'])) {
-                Log::info('Telegram webhook: No message in update');
+                \Log::info('No message in update - SKIPPED');
                 return;
             }
 
@@ -46,52 +47,79 @@ class TelegramBotService
             $telegramId = $from['id'] ?? null;
             $telegramUsername = $from['username'] ?? null;
 
-            Log::info("Telegram message from {$username} ({$chatId}): {$text}");
+            // ⭐ THÊM LOG NÀY
+            \Log::info('Message parsed', [
+                'chatId' => $chatId,
+                'username' => $username,
+                'text' => $text
+            ]);
 
             // Find or create location by chat_id
+            \Log::info('Looking for location with chat_id: ' . $chatId);
             $location = Location::where('chat_id', $chatId)->first();
 
             if (!$location) {
-                // AUTO-CREATE LOCATION
+                // ⭐ THÊM LOG NÀY
+                \Log::info('Location NOT FOUND - Creating new...');
+
                 $location = $this->autoCreateLocation($chatId, $chatTitle, $chatType);
 
-                // Send welcome message
+                // ⭐ THÊM LOG NÀY
+                \Log::info('Location created', [
+                    'id' => $location->id,
+                    'name' => $location->name,
+                    'code' => $location->code
+                ]);
+
                 $this->sendWelcomeMessage($chatId, $location);
+            } else {
+                // ⭐ THÊM LOG NÀY
+                \Log::info('Location FOUND', [
+                    'id' => $location->id,
+                    'name' => $location->name
+                ]);
             }
 
             // Check for commands
             if (str_starts_with($text, '/')) {
+                \Log::info('Processing as COMMAND');
                 $this->handleCommand($chatId, $text, $location);
                 return;
             }
 
             // Check if completion report
             if ($this->isCompletionReport($text)) {
+                \Log::info('Processing as COMPLETION REPORT');
                 $this->handleCompletion($chatId, $location, $username, $telegramId, $text);
                 return;
             }
 
             // Handle regular report
+            \Log::info('Processing as REGULAR REPORT');
             $this->handleReport($chatId, $location, $username, $telegramId, $telegramUsername, $text);
 
-        } catch (\Exception $e) {
-            Log::error('Telegram webhook error: ' . $e->getMessage());
-            Log::error($e->getTraceAsString());
+            // ⭐ THÊM LOG NÀY
+            \Log::info('=== WEBHOOK HANDLER COMPLETED ===');
 
-            // Gửi thông báo lỗi về Telegram nếu có chatId
+        } catch (\Exception $e) {
+            // ⭐ THÊM LOG CHI TIẾT
+            \Log::error('=== WEBHOOK HANDLER ERROR ===');
+            \Log::error('Error message: ' . $e->getMessage());
+            \Log::error('Error file: ' . $e->getFile() . ':' . $e->getLine());
+            \Log::error('Stack trace: ' . $e->getTraceAsString());
+
             if (isset($chatId)) {
                 try {
                     $this->bot->sendMessage(
                         $chatId,
-                        "❌ Có lỗi xảy ra khi xử lý tin nhắn. Vui lòng thử lại sau."
+                        "❌ Có lỗi xảy ra: " . $e->getMessage()
                     );
                 } catch (\Exception $sendError) {
-                    Log::error('Failed to send error message: ' . $sendError->getMessage());
+                    \Log::error('Failed to send error message: ' . $sendError->getMessage());
                 }
             }
         }
     }
-
     /**
      * Auto-create Location from Telegram group info
      */
@@ -252,44 +280,66 @@ class TelegramBotService
         ?string $telegramUsername,
         string $text
     ): void {
-        Log::info("Regular report from {$username} at {$location->name}");
+        \Log::info('=== HANDLE REPORT START ===');
+        \Log::info("Report from {$username} at {$location->name}");
 
         // Send processing message
-        $this->bot->sendMessage($chatId, "⏳ Tổng Giám Đốc AI đang phân tích báo cáo...");
+        try {
+            \Log::info('Sending processing message...');
+            $this->bot->sendMessage($chatId, "⏳ Tổng Giám Đốc AI đang phân tích báo cáo...");
+            \Log::info('Processing message sent ✓');
+        } catch (\Exception $e) {
+            \Log::error('Failed to send processing message: ' . $e->getMessage());
+        }
 
         try {
             // Get AI response
+            \Log::info('Calling OpenAI...');
             $aiResponse = $this->openAI->getCEODirective(
                 $location->name,
                 $username,
                 $text
             );
+            \Log::info('OpenAI response received', ['response' => $aiResponse]);
+
         } catch (\Exception $e) {
-            Log::error("OpenAI error: " . $e->getMessage());
+            \Log::error("OpenAI error: " . $e->getMessage());
             $aiResponse = "Đã nhận được báo cáo. Hệ thống AI tạm thời quá tải, TGĐ AI sẽ phản hồi trong vòng 15 phút.";
         }
 
         // Determine priority
         $priority = $this->determinePriority($aiResponse);
+        \Log::info('Priority determined: ' . $priority);
 
         // Extract deadline
         $deadline = $this->extractDeadline($aiResponse);
+        \Log::info('Deadline extracted: ' . ($deadline ? $deadline->toDateTimeString() : 'null'));
 
         // Determine status
         $status = $deadline ? 'in_progress' : 'pending';
+        \Log::info('Status set: ' . $status);
 
         // Save to database
-        $report = Report::create([
-            'location_id' => $location->id,
-            'reporter_name' => $username,
-            'reporter_telegram_id' => $telegramId,
-            'reporter_username' => $telegramUsername,
-            'content' => $text,
-            'ai_response' => $aiResponse,
-            'status' => $status,
-            'priority' => $priority,
-            'deadline' => $deadline,
-        ]);
+        try {
+            \Log::info('Saving report to database...');
+            $report = Report::create([
+                'location_id' => $location->id,
+                'reporter_name' => $username,
+                'reporter_telegram_id' => $telegramId,
+                'reporter_username' => $telegramUsername,
+                'content' => $text,
+                'ai_response' => $aiResponse,
+                'status' => $status,
+                'priority' => $priority,
+                'deadline' => $deadline,
+            ]);
+            \Log::info('Report saved ✓', ['report_id' => $report->id]);
+
+        } catch (\Exception $e) {
+            \Log::error('Failed to save report: ' . $e->getMessage());
+            \Log::error('SQL Error: ' . $e->getTraceAsString());
+            throw $e;
+        }
 
         // Send AI response
         $icon = match($priority) {
@@ -301,14 +351,19 @@ class TelegramBotService
         $message = "{$icon} *CHỈ ĐẠO TGĐ AI:*\n\n{$aiResponse}";
 
         try {
+            \Log::info('Sending AI response to Telegram...');
             $this->bot->sendMessage($chatId, $message, 'Markdown');
+            \Log::info('AI response sent ✓');
         } catch (\Exception $e) {
-            Log::error("Failed to send AI response: " . $e->getMessage());
-            // Try sending without markdown
-            $this->bot->sendMessage($chatId, strip_tags($message));
+            \Log::error("Failed to send AI response: " . $e->getMessage());
+            try {
+                $this->bot->sendMessage($chatId, strip_tags($message));
+            } catch (\Exception $e2) {
+                \Log::error("Failed to send plain text: " . $e2->getMessage());
+            }
         }
 
-        Log::info("Report #{$report->id} created successfully");
+        \Log::info('=== HANDLE REPORT COMPLETED ===');
     }
 
     /**
