@@ -10,9 +10,16 @@ class OpenAIService
     protected $client;
 
     public function __construct()
-  {
-        // Hardcode key để chạy ngay, không cần .env nữa
-        $this->client = OpenAI::client('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');
+    {
+        // FIX: Sử dụng config thay vì hardcode
+        $apiKey = config('services.openai.api_key');
+
+        if (empty($apiKey)) {
+            Log::error('OpenAI API key is missing in config');
+            throw new \Exception('OpenAI API key not configured');
+        }
+
+        $this->client = OpenAI::client($apiKey);
     }
 
     /**
@@ -33,9 +40,9 @@ class OpenAIService
             ]);
 
             $result = $response->choices[0]->message->content;
-            
+
             Log::info("OpenAI response generated for {$location}");
-            
+
             return trim($result);
 
         } catch (\Exception $e) {
@@ -81,8 +88,8 @@ PHONG CÁCH:
     protected function getFallbackResponse(): string
     {
         return "Đã nhận được báo cáo. Hệ thống AI tạm thời quá tải, " .
-               "TGĐ AI sẽ phản hồi chi tiết trong vòng 15 phút. " .
-               "Nếu khẩn cấp, vui lòng liên hệ hotline.";
+            "TGĐ AI sẽ phản hồi chi tiết trong vòng 15 phút. " .
+            "Nếu khẩn cấp, vui lòng liên hệ hotline.";
     }
 
     /**
