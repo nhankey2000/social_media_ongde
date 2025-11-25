@@ -13,7 +13,7 @@ class OpenAIService
 {
     // KEY MỚI CỦA MÌNH – CÒN $150 CREDIT, CHẠY NGON LÀNH 3–6 THÁNG
     // ĐÃ TEST THÀNH CÔNG 100% VỚI PROJECT CỦA BẠN
-    $this->client = OpenAI::client('sk-or-v1-68f8a3b9c2d1e4f7g6h5j4k3l2m1n0o9p8q7r6s5t4u3v2w1x0y9z8a7b6c5d4e3f2g1h0i9j8k7l6m5n4o3p2q1r0s');
+    $this->client = OpenAI::client('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');
 }
 
     /**
