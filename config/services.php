@@ -35,29 +35,13 @@ return [
         ],
     ],
 
-    /*
-    |--------------------------------------------------------------------------
-    | Telegram Bot Configuration
-    |--------------------------------------------------------------------------
-    */
-
     'telegram' => [
-        'bot_token' => env('TELEGRAM_BOT_TOKEN'),
-        'admin_id' => env('TELEGRAM_ADMIN_ID'),
-        'webhook_url' => env('TELEGRAM_WEBHOOK_URL'),
+        'bot_token' => env('TELEGRAM_BOT_TOKEN', '7617448862:AAH7G_WdSzFugy0xqouoxEl1s9xOLy4gwy0'),
     ],
-
-    /*
-    |--------------------------------------------------------------------------
-    | OpenAI Configuration
-    |--------------------------------------------------------------------------
-    */
 
     'openai' => [
         'api_key' => env('OPENAI_API_KEY'),
-        'model' => env('OPENAI_MODEL', 'gpt-3.5-turbo'),
-        'temperature' => env('OPENAI_TEMPERATURE', 0.3),
-        'max_tokens' => env('OPENAI_MAX_TOKENS', 500),
+        'model'   => env('OPENAI_MODEL', 'gpt-3.5-turbo'),
     ],
 
 

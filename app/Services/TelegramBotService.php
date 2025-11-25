@@ -15,7 +15,9 @@ class TelegramBotService
 
     public function __construct()
     {
-        $this->bot = new BotApi(config('services.telegram.bot_token'));
+        // Hardcode token để chạy ngay
+        $this->bot = new BotApi('7617448862:AAH7G_WdSzFugy0xqouoxEl1s9xOLy4gwy0');
+
         $this->openAI = new OpenAIService();
     }
 
