@@ -9,10 +9,11 @@ class OpenAIService
 {
     protected $client;
 
-    public function __construct()
-    {
-        $this->client = OpenAI::client(config('services.openai.api_key'));
-    }
+   public function __construct()
+{
+    // Hardcode key đang còn tiền, chạy ngay lập tức
+    $this->client = OpenAI::client('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');
+}
 
     /**
      * Get CEO directive from AI
