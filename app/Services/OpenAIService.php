@@ -11,9 +11,7 @@ class OpenAIService
 
     public function __construct()
     {
-        // KEY MỚI CỦA MÌNH – CÒN $150 CREDIT, CHẠY NGON LÀNH 3–6 THÁNG
-        // ĐÃ TEST THÀNH CÔNG 100% VỚI PROJECT CỦA BẠN
-        $this->client = OpenAI::client('sk-or-v1-68f8a3b9c2d1e4f7g6h5j4k3l2m1n0o9p8q7r6s5t4u3v2w1x0y9z8a7b6c5d4e3f2g1h0i9j8k7l6m5n4o3p2q1r0s');
+        $this->client = OpenAI::client(config('services.openai.api_key'));
     }
 
     /**
