@@ -27,6 +27,9 @@ class TelegramBotService
     public function handleWebhook(array $update): void
     {
         try {
+            // Log raw update để debug
+            Log::info('Telegram webhook received', ['update' => $update]);
+
             if (!isset($update['message'])) {
                 Log::info('Telegram webhook: No message in update');
                 return;
@@ -74,6 +77,18 @@ class TelegramBotService
         } catch (\Exception $e) {
             Log::error('Telegram webhook error: ' . $e->getMessage());
             Log::error($e->getTraceAsString());
+
+            // Gửi thông báo lỗi về Telegram nếu có chatId
+            if (isset($chatId)) {
+                try {
+                    $this->bot->sendMessage(
+                        $chatId,
+                        "❌ Có lỗi xảy ra khi xử lý tin nhắn. Vui lòng thử lại sau."
+                    );
+                } catch (\Exception $sendError) {
+                    Log::error('Failed to send error message: ' . $sendError->getMessage());
+                }
+            }
         }
     }
 
@@ -147,6 +162,8 @@ class TelegramBotService
     {
         $cmd = explode(' ', $command)[0];
 
+        Log::info("Handling command: {$cmd}");
+
         switch ($cmd) {
             case '/start':
                 $this->sendWelcomeMessage($chatId, $location);
@@ -179,7 +196,7 @@ class TelegramBotService
         $keywords = [
             'xong', 'hoàn thành', 'đã làm xong', 'done', 'completed',
             'đã sửa xong', 'đã dọn xong', 'hoàn tất', 'ok xong', 'done rồi',
-            'finish', 'fixed', 'resolved', 'giải quyết xong'
+            'finish', 'finished', 'fixed', 'resolved', 'giải quyết xong'
         ];
 
         $textLower = strtolower($text);
@@ -282,7 +299,14 @@ class TelegramBotService
         };
 
         $message = "{$icon} *CHỈ ĐẠO TGĐ AI:*\n\n{$aiResponse}";
-        $this->bot->sendMessage($chatId, $message, 'Markdown');
+
+        try {
+            $this->bot->sendMessage($chatId, $message, 'Markdown');
+        } catch (\Exception $e) {
+            Log::error("Failed to send AI response: " . $e->getMessage());
+            // Try sending without markdown
+            $this->bot->sendMessage($chatId, strip_tags($message));
+        }
 
         Log::info("Report #{$report->id} created successfully");
     }
@@ -296,12 +320,14 @@ class TelegramBotService
 
         if (str_contains($responseUpper, 'KHẨN') ||
             str_contains($responseUpper, 'GẤP') ||
+            str_contains($responseUpper, 'NGAY LẬP TỨC') ||
             str_contains($responseUpper, 'NGAY')) {
             return 'high';
         }
 
         if (str_contains($responseUpper, 'QUAN TRỌNG') ||
-            str_contains($responseUpper, 'ƯU TIÊN')) {
+            str_contains($responseUpper, 'ƯU TIÊN') ||
+            str_contains($responseUpper, 'CẦN CHÚ Ý')) {
             return 'medium';
         }
 
@@ -314,9 +340,11 @@ class TelegramBotService
     protected function extractDeadline(string $text): ?\DateTime
     {
         $patterns = [
-            '/trước\s+(\d{1,2})[h:](\d{2})/i',
-            '/trước\s+(\d{1,2})\s*giờ/i',
-            '/(\d{1,2})[h:](\d{2})/i',
+            '/trước\s+(\d{1,2})[h:](\d{2})/i',      // trước 15h30
+            '/trước\s+(\d{1,2})\s*giờ/i',            // trước 15 giờ
+            '/(\d{1,2})[h:](\d{2})/i',               // 15h30
+            '/lúc\s+(\d{1,2})[h:](\d{2})/i',        // lúc 15h30
+            '/vào\s+(\d{1,2})[h:](\d{2})/i',        // vào 15h30
         ];
 
         foreach ($patterns as $pattern) {
@@ -324,8 +352,14 @@ class TelegramBotService
                 $hour = (int) $matches[1];
                 $minute = isset($matches[2]) ? (int) $matches[2] : 0;
 
+                // Validate hour and minute
+                if ($hour < 0 || $hour > 23 || $minute < 0 || $minute > 59) {
+                    continue;
+                }
+
                 $deadline = now()->setTime($hour, $minute, 0);
 
+                // If deadline is in the past, set it to tomorrow
                 if ($deadline < now()) {
                     $deadline->addDay();
                 }
@@ -355,7 +389,11 @@ class TelegramBotService
             "/info - Thông tin điểm\n" .
             "/help - Hướng dẫn chi tiết";
 
-        $this->bot->sendMessage($chatId, $message, 'Markdown');
+        try {
+            $this->bot->sendMessage($chatId, $message, 'Markdown');
+        } catch (\Exception $e) {
+            Log::error("Failed to send welcome message: " . $e->getMessage());
+        }
     }
 
     /**
@@ -374,7 +412,11 @@ class TelegramBotService
             "📈 Tỷ lệ hoàn thành: {$stats['completion_rate']}%\n" .
             "⏱ Thời gian xử lý TB: " . round($stats['average_processing_time'] ?? 0) . " phút";
 
-        $this->bot->sendMessage($chatId, $message, 'Markdown');
+        try {
+            $this->bot->sendMessage($chatId, $message, 'Markdown');
+        } catch (\Exception $e) {
+            Log::error("Failed to send status report: " . $e->getMessage());
+        }
     }
 
     /**
@@ -392,7 +434,11 @@ class TelegramBotService
             "🟢 *Trạng thái:* " . ($location->is_active ? 'Đang hoạt động' : 'Ngưng hoạt động') . "\n\n" .
             "💡 *Để cập nhật thông tin, vào Admin Panel*";
 
-        $this->bot->sendMessage($chatId, $message, 'Markdown');
+        try {
+            $this->bot->sendMessage($chatId, $message, 'Markdown');
+        } catch (\Exception $e) {
+            Log::error("Failed to send location info: " . $e->getMessage());
+        }
     }
 
     /**
@@ -414,9 +460,17 @@ class TelegramBotService
             "• Máy POS lỗi không in được hóa đơn\n" .
             "• Khách phàn nàn về tốc độ phục vụ\n" .
             "• Hôm nay doanh thu 15 triệu\n" .
-            "• Đã sửa xong máy lạnh";
+            "• Đã sửa xong máy lạnh\n\n" .
+            "*5️⃣ Tips:*\n" .
+            "• Báo cáo càng chi tiết càng tốt\n" .
+            "• AI sẽ tự động xác định mức độ ưu tiên\n" .
+            "• AI sẽ tự động đặt deadline nếu cần";
 
-        $this->bot->sendMessage($chatId, $message, 'Markdown');
+        try {
+            $this->bot->sendMessage($chatId, $message, 'Markdown');
+        } catch (\Exception $e) {
+            Log::error("Failed to send help message: " . $e->getMessage());
+        }
     }
 
     /**
@@ -424,7 +478,65 @@ class TelegramBotService
      */
     public static function setWebhook(string $url): array
     {
-        $bot = new BotApi(config('services.telegram.bot_token'));
-        return $bot->setWebhook($url);
+        $token = '7617448862:AAH7G_WdSzFugy0xqouoxEl1s9xOLy4gwy0';
+        $bot = new BotApi($token);
+
+        try {
+            $result = $bot->setWebhook($url);
+            Log::info("Webhook set successfully", ['url' => $url, 'result' => $result]);
+            return ['success' => true, 'result' => $result];
+        } catch (\Exception $e) {
+            Log::error("Failed to set webhook: " . $e->getMessage());
+            return ['success' => false, 'error' => $e->getMessage()];
+        }
+    }
+
+    /**
+     * Get webhook info
+     */
+    public static function getWebhookInfo(): array
+    {
+        $token = '7617448862:AAH7G_WdSzFugy0xqouoxEl1s9xOLy4gwy0';
+        $bot = new BotApi($token);
+
+        try {
+            $info = $bot->getWebhookInfo();
+            return ['success' => true, 'info' => $info];
+        } catch (\Exception $e) {
+            Log::error("Failed to get webhook info: " . $e->getMessage());
+            return ['success' => false, 'error' => $e->getMessage()];
+        }
+    }
+
+    /**
+     * Delete webhook
+     */
+    public static function deleteWebhook(): array
+    {
+        $token = '7617448862:AAH7G_WdSzFugy0xqouoxEl1s9xOLy4gwy0';
+        $bot = new BotApi($token);
+
+        try {
+            $result = $bot->deleteWebhook();
+            Log::info("Webhook deleted successfully");
+            return ['success' => true, 'result' => $result];
+        } catch (\Exception $e) {
+            Log::error("Failed to delete webhook: " . $e->getMessage());
+            return ['success' => false, 'error' => $e->getMessage()];
+        }
+    }
+
+    /**
+     * Send custom message to a chat
+     */
+    public function sendCustomMessage(int $chatId, string $message, string $parseMode = 'Markdown'): bool
+    {
+        try {
+            $this->bot->sendMessage($chatId, $message, $parseMode);
+            return true;
+        } catch (\Exception $e) {
+            Log::error("Failed to send custom message: " . $e->getMessage());
+            return false;
+        }
     }
 }
