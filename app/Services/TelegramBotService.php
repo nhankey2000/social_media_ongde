@@ -42,7 +42,11 @@ class TelegramBotService
             $text = $message['text'] ?? '';
             $from = $message['from'];
 
-            $username = $from['first_name'] ?? 'Unknown';
+            // Lấy tên đầy đủ
+            $firstName = $from['first_name'] ?? '';
+            $lastName = $from['last_name'] ?? '';
+            $username = trim($firstName . ' ' . $lastName) ?: 'Unknown';
+
             $telegramId = $from['id'] ?? null;
             $telegramUsername = $from['username'] ?? null;
 
