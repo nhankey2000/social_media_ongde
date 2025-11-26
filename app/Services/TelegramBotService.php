@@ -292,17 +292,20 @@ class TelegramBotService
             \Log::error('Failed to send processing message: ' . $e->getMessage());
         }
 
+        // Call OpenAI
         try {
-            $directive = $this->openAIService->getCEODirective(
+            \Log::info('Calling OpenAI...');
+            $aiResponse = $this->openAI->getCEODirective(  // ← ĐỔI từ $directive thành $aiResponse
                 $location->name,
                 $username,
                 $text
             );
+            \Log::info('OpenAI response received ✓');
         } catch (\Exception $e) {
-            Log::error('Failed to get CEO directive: ' . $e->getMessage());
+            \Log::error('Failed to get CEO directive: ' . $e->getMessage());
 
             // Gửi thông báo lỗi cho user trên Telegram
-            $this->sendMessage(
+            $this->bot->sendMessage(  // ← ĐỔI từ $this->sendMessage thành $this->bot->sendMessage
                 $chatId,
                 "⚠️ Xin lỗi, hệ thống đang gặp sự cố. Vui lòng thử lại sau.\n\nLỗi: " . $e->getMessage()
             );
