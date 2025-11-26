@@ -23,32 +23,41 @@ class OpenAIService
     /**
      * Get CEO directive from AI
      */
-    public function getCEODirective(string $location, string $reporter, string $content): string
+    public function getCEODirective($location, $username, $text)
     {
-        $prompt = $this->buildPrompt($location, $reporter, $content);
-
         try {
-            $response = $this->client->chat()->create([
-                'model' => config('services.openai.model', 'gpt-3.5-turbo'),
-                'messages' => [
-                    ['role' => 'user', 'content' => $prompt]
-                ],
-                'temperature' => 0.3,
-                'max_tokens' => 500,
+            Log::info('Calling OpenAI API...', [
+                'location' => $location,
+                'username' => $username
             ]);
 
-            $result = $response->choices[0]->message->content;
+            $response = $this->client->chat()->create([
+                'model' => 'gpt-4-turbo-preview', // hoặc model bạn đang dùng
+                'messages' => [
+                    [
+                        'role' => 'system',
+                        'content' => 'Prompt hệ thống của bạn'
+                    ],
+                    [
+                        'role' => 'user',
+                        'content' => "Location: {$location}\nUser: {$username}\nMessage: {$text}"
+                    ]
+                ],
+                'max_tokens' => 500,
+                'temperature' => 0.7,
+            ]);
 
-            Log::info("OpenAI response generated for {$location}");
+            Log::info('OpenAI response received successfully');
+            return $response->choices[0]->message->content;
 
-            return trim($result);
-
+        } catch (\OpenAI\Exceptions\ErrorException $e) {
+            Log::error('OpenAI API Error: ' . $e->getMessage());
+            throw new \Exception('Lỗi OpenAI API: ' . $e->getMessage());
         } catch (\Exception $e) {
-            Log::error('OpenAI API error: ' . $e->getMessage());
-            return $this->getFallbackResponse();
+            Log::error('Unexpected OpenAI error: ' . $e->getMessage());
+            throw new \Exception('Không thể kết nối OpenAI: ' . $e->getMessage());
         }
     }
-
     /**
      * Build prompt for CEO AI
      */

@@ -293,18 +293,20 @@ class TelegramBotService
         }
 
         try {
-            // Get AI response
-            \Log::info('Calling OpenAI...');
-            $aiResponse = $this->openAI->getCEODirective(
+            $directive = $this->openAIService->getCEODirective(
                 $location->name,
                 $username,
                 $text
             );
-            \Log::info('OpenAI response received', ['response' => $aiResponse]);
-
         } catch (\Exception $e) {
-            \Log::error("OpenAI error: " . $e->getMessage());
-            $aiResponse = "Đã nhận được báo cáo. Hệ thống AI tạm thời quá tải, TGĐ AI sẽ phản hồi trong vòng 15 phút.";
+            Log::error('Failed to get CEO directive: ' . $e->getMessage());
+
+            // Gửi thông báo lỗi cho user trên Telegram
+            $this->sendMessage(
+                $chatId,
+                "⚠️ Xin lỗi, hệ thống đang gặp sự cố. Vui lòng thử lại sau.\n\nLỗi: " . $e->getMessage()
+            );
+            return;
         }
 
         // Determine priority
