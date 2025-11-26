@@ -14,7 +14,7 @@ class OpenAIService
         $apiKey = config('services.openai.api_key') ?? env('OPENAI_API_KEY');
 
         if (!$apiKey || $apiKey === 'your-key-here') {
-            Log::warning('OpenAI API key chưa được cấu hình!');
+            throw new \Exception('OpenAI API key chưa được cấu hình! Vui lòng kiểm tra file .env');
         }
 
         $this->client = OpenAI::client($apiKey);
@@ -31,33 +31,54 @@ class OpenAIService
                 'username' => $username
             ]);
 
+            $systemPrompt = $this->buildPrompt($location, $username, $text);
+
             $response = $this->client->chat()->create([
-                'model' => 'gpt-4-turbo-preview', // hoặc model bạn đang dùng
+                'model' => 'gpt-4o-mini', // ← ĐỔI MODEL (rẻ và nhanh)
+                // Hoặc dùng: 'gpt-3.5-turbo' nếu muốn rẻ hơn
                 'messages' => [
                     [
                         'role' => 'system',
-                        'content' => 'Prompt hệ thống của bạn'
+                        'content' => $systemPrompt // ← DÙNG PROMPT ĐÃ BUILD
                     ],
                     [
                         'role' => 'user',
-                        'content' => "Location: {$location}\nUser: {$username}\nMessage: {$text}"
+                        'content' => "Hãy đưa ra chỉ đạo cụ thể và có thể thực hiện ngay."
                     ]
                 ],
-                'max_tokens' => 500,
+                'max_tokens' => 300, // ← GIẢM để tiết kiệm
                 'temperature' => 0.7,
             ]);
 
+            $directive = $response->choices[0]->message->content;
+
             Log::info('OpenAI response received successfully');
-            return $response->choices[0]->message->content;
+            return $directive;
 
         } catch (\OpenAI\Exceptions\ErrorException $e) {
             Log::error('OpenAI API Error: ' . $e->getMessage());
-            throw new \Exception('Lỗi OpenAI API: ' . $e->getMessage());
+
+            // Kiểm tra lỗi cụ thể
+            $errorMsg = $e->getMessage();
+
+            if (str_contains($errorMsg, 'invalid_api_key')) {
+                throw new \Exception('API Key không hợp lệ. Kiểm tra lại OPENAI_API_KEY trong .env');
+            } elseif (str_contains($errorMsg, 'insufficient_quota')) {
+                throw new \Exception('Tài khoản OpenAI hết quota. Vui lòng nạp thêm credits tại platform.openai.com');
+            } elseif (str_contains($errorMsg, 'model_not_found')) {
+                throw new \Exception('Model không tồn tại. Vui lòng dùng gpt-4o-mini hoặc gpt-3.5-turbo');
+            } elseif (str_contains($errorMsg, 'rate_limit')) {
+                throw new \Exception('Đã vượt quá giới hạn request. Thử lại sau vài giây.');
+            }
+
+            throw new \Exception('Lỗi OpenAI API: ' . $errorMsg);
+
         } catch (\Exception $e) {
             Log::error('Unexpected OpenAI error: ' . $e->getMessage());
             throw new \Exception('Không thể kết nối OpenAI: ' . $e->getMessage());
         }
     }
+
     /**
      * Build prompt for CEO AI
      */
@@ -95,8 +116,8 @@ PHONG CÁCH:
     protected function getFallbackResponse(): string
     {
         return "Đã nhận được báo cáo. Hệ thống AI tạm thời quá tải, " .
-               "TGĐ AI sẽ phản hồi chi tiết trong vòng 15 phút. " .
-               "Nếu khẩn cấp, vui lòng liên hệ hotline.";
+            "TGĐ AI sẽ phản hồi chi tiết trong vòng 15 phút. " .
+            "Nếu khẩn cấp, vui lòng liên hệ hotline.";
     }
 
     /**
