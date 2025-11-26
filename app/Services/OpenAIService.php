@@ -34,7 +34,7 @@ class OpenAIService
             $systemPrompt = $this->buildPrompt($location, $username, $text);
 
             $response = $this->client->chat()->create([
-                'model' => 'gpt-4o-mini', // ← ĐỔI MODEL (rẻ và nhanh)
+                'model' => 'gpt-3.5-turbo', // ← ĐỔI MODEL (rẻ và nhanh)
                 // Hoặc dùng: 'gpt-3.5-turbo' nếu muốn rẻ hơn
                 'messages' => [
                     [
