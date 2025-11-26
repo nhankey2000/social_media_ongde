@@ -28,7 +28,6 @@ class TelegramBotService
     public function handleWebhook(array $update): void
     {
         try {
-            // ⭐ THÊM LOG NÀY
             \Log::info('=== WEBHOOK HANDLER STARTED ===', ['update' => $update]);
 
             if (!isset($update['message'])) {
@@ -47,7 +46,6 @@ class TelegramBotService
             $telegramId = $from['id'] ?? null;
             $telegramUsername = $from['username'] ?? null;
 
-            // ⭐ THÊM LOG NÀY
             \Log::info('Message parsed', [
                 'chatId' => $chatId,
                 'username' => $username,
@@ -59,12 +57,10 @@ class TelegramBotService
             $location = Location::where('chat_id', $chatId)->first();
 
             if (!$location) {
-                // ⭐ THÊM LOG NÀY
                 \Log::info('Location NOT FOUND - Creating new...');
 
                 $location = $this->autoCreateLocation($chatId, $chatTitle, $chatType);
 
-                // ⭐ THÊM LOG NÀY
                 \Log::info('Location created', [
                     'id' => $location->id,
                     'name' => $location->name,
@@ -73,7 +69,6 @@ class TelegramBotService
 
                 $this->sendWelcomeMessage($chatId, $location);
             } else {
-                // ⭐ THÊM LOG NÀY
                 \Log::info('Location FOUND', [
                     'id' => $location->id,
                     'name' => $location->name
@@ -98,11 +93,9 @@ class TelegramBotService
             \Log::info('Processing as REGULAR REPORT');
             $this->handleReport($chatId, $location, $username, $telegramId, $telegramUsername, $text);
 
-            // ⭐ THÊM LOG NÀY
             \Log::info('=== WEBHOOK HANDLER COMPLETED ===');
 
         } catch (\Exception $e) {
-            // ⭐ THÊM LOG CHI TIẾT
             \Log::error('=== WEBHOOK HANDLER ERROR ===');
             \Log::error('Error message: ' . $e->getMessage());
             \Log::error('Error file: ' . $e->getFile() . ':' . $e->getLine());
@@ -120,6 +113,7 @@ class TelegramBotService
             }
         }
     }
+
     /**
      * Auto-create Location from Telegram group info
      */
@@ -127,17 +121,14 @@ class TelegramBotService
     {
         Log::info("Auto-creating location for chat: {$chatTitle} ({$chatId})");
 
-        // Generate unique code
         $code = $this->generateLocationCode($chatTitle);
 
-        // Determine name based on chat type
         if ($chatType === 'private') {
             $name = "Chat riêng - {$chatTitle}";
         } else {
             $name = $chatTitle;
         }
 
-        // Create location
         $location = Location::create([
             'name' => $name,
             'code' => $code,
@@ -156,11 +147,9 @@ class TelegramBotService
      */
     protected function generateLocationCode(string $chatTitle): string
     {
-        // Remove special chars and get first letters
         $slug = Str::slug($chatTitle);
         $parts = explode('-', $slug);
 
-        // Get first 2-3 letters of first 2 words
         $prefix = '';
         foreach (array_slice($parts, 0, 2) as $part) {
             $prefix .= strtoupper(substr($part, 0, 2));
@@ -170,10 +159,8 @@ class TelegramBotService
             $prefix = 'GRP';
         }
 
-        // Add random number to ensure uniqueness
         $code = $prefix . '-' . str_pad(rand(1, 999), 3, '0', STR_PAD_LEFT);
 
-        // Check if exists, regenerate if needed
         $attempts = 0;
         while (Location::where('code', $code)->exists() && $attempts < 10) {
             $code = $prefix . '-' . str_pad(rand(1, 999), 3, '0', STR_PAD_LEFT);
@@ -254,7 +241,6 @@ class TelegramBotService
 
         $this->bot->sendMessage($chatId, $response, 'Markdown');
 
-        // Save to database
         Report::create([
             'location_id' => $location->id,
             'reporter_name' => $username,
@@ -292,20 +278,34 @@ class TelegramBotService
             \Log::error('Failed to send processing message: ' . $e->getMessage());
         }
 
-        // Call OpenAI
+        // Call AI
         try {
-            \Log::info('Calling OpenAI...');
-            $aiResponse = $this->openAI->getCEODirective(  // ← ĐỔI từ $directive thành $aiResponse
+            \Log::info('Calling AI...');
+            $aiResult = $this->openAI->getCEODirective(
                 $location->name,
                 $username,
                 $text
             );
-            \Log::info('OpenAI response received ✓');
-        } catch (\Exception $e) {
-            \Log::error('Failed to get CEO directive: ' . $e->getMessage());
 
-            // Gửi thông báo lỗi cho user trên Telegram
-            $this->bot->sendMessage(  // ← ĐỔI từ $this->sendMessage thành $this->bot->sendMessage
+            // Xử lý kết quả từ AI (có thể là string hoặc array)
+            if (is_array($aiResult)) {
+                $aiResponse = $aiResult['directive'];
+                $isFinancial = $aiResult['is_financial'] ?? false;
+                $needsChairmanApproval = $aiResult['needs_chairman_approval'] ?? false;
+            } else {
+                $aiResponse = $aiResult;
+                $isFinancial = $this->detectFinancialIssue($text);
+                $needsChairmanApproval = $isFinancial;
+            }
+
+            \Log::info('AI response received ✓', [
+                'is_financial' => $isFinancial,
+                'needs_approval' => $needsChairmanApproval
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Failed to get AI directive: ' . $e->getMessage());
+
+            $this->bot->sendMessage(
                 $chatId,
                 "⚠️ Xin lỗi, hệ thống đang gặp sự cố. Vui lòng thử lại sau.\n\nLỗi: " . $e->getMessage()
             );
@@ -314,6 +314,9 @@ class TelegramBotService
 
         // Determine priority
         $priority = $this->determinePriority($aiResponse);
+        if ($isFinancial) {
+            $priority = 'high'; // Vấn đề tài chính luôn là high priority
+        }
         \Log::info('Priority determined: ' . $priority);
 
         // Extract deadline
@@ -321,7 +324,7 @@ class TelegramBotService
         \Log::info('Deadline extracted: ' . ($deadline ? $deadline->toDateTimeString() : 'null'));
 
         // Determine status
-        $status = $deadline ? 'in_progress' : 'pending';
+        $status = $needsChairmanApproval ? 'pending_approval' : ($deadline ? 'in_progress' : 'pending');
         \Log::info('Status set: ' . $status);
 
         // Save to database
@@ -346,29 +349,103 @@ class TelegramBotService
             throw $e;
         }
 
-        // Send AI response
+        // === 1️⃣ GỬI TIN NHẮN VÀO GROUP ===
         $icon = match($priority) {
             'high' => '🔥',
             'medium' => '⚡',
             default => 'ℹ️'
         };
 
-        $message = "{$icon} *CHỈ ĐẠO TGĐ AI:*\n\n{$aiResponse}";
+        $groupMessage = "{$icon} *CHỈ ĐẠO TGĐ AI:*\n\n{$aiResponse}";
 
         try {
-            \Log::info('Sending AI response to Telegram...');
-            $this->bot->sendMessage($chatId, $message, 'Markdown');
-            \Log::info('AI response sent ✓');
+            \Log::info('Sending AI response to group...');
+            $this->bot->sendMessage($chatId, $groupMessage, 'Markdown');
+            \Log::info('Group message sent ✓');
         } catch (\Exception $e) {
-            \Log::error("Failed to send AI response: " . $e->getMessage());
+            \Log::error("Failed to send group message: " . $e->getMessage());
             try {
-                $this->bot->sendMessage($chatId, strip_tags($message));
+                $this->bot->sendMessage($chatId, strip_tags($groupMessage));
             } catch (\Exception $e2) {
                 \Log::error("Failed to send plain text: " . $e2->getMessage());
             }
         }
 
+        // === 2️⃣ GỬI BẢN SAO CHO ADMIN/CHỦ TỊCH ===
+        $this->sendReportToAdmin($report, $location, $username, $text, $aiResponse, $priority, $isFinancial, $needsChairmanApproval);
+
         \Log::info('=== HANDLE REPORT COMPLETED ===');
+    }
+
+    /**
+     * Phát hiện vấn đề liên quan tài chính
+     */
+    protected function detectFinancialIssue(string $text): bool
+    {
+        $financialKeywords = [
+            'tiền', 'đồng', 'vnd', 'triệu', 'nghìn', 'tỷ', 'ngàn',
+            'chi phí', 'kinh phí', 'ngân sách', 'budget',
+            'mua', 'sắm', 'đặt hàng', 'order', 'thanh toán', 'payment',
+            'hóa đơn', 'invoice', 'chi', 'trả tiền',
+            'đầu tư', 'invest', 'trang thiết bị', 'thiết bị mới',
+            'nâng cấp', 'upgrade', 'bổ sung',
+            'tuyển', 'recruitment', 'lương', 'salary', 'thưởng', 'bonus',
+            'tăng lương', 'phụ cấp', 'trợ cấp',
+            'phê duyệt', 'approval', 'xin phép', 'cần tiền',
+            'hết tiền', 'thiếu tiền', 'cần mua'
+        ];
+
+        $textLower = mb_strtolower($text);
+
+        foreach ($financialKeywords as $keyword) {
+            if (str_contains($textLower, $keyword)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Gửi bản sao báo cáo cho Admin/Chủ Tịch
+     */
+    protected function sendReportToAdmin($report, $location, $username, $text, $aiResponse, $priority, $isFinancial = false, $needsApproval = false)
+    {
+        try {
+            // ID Telegram của Chủ Tịch Lê Hải Phúc
+            $adminTelegramId = env('TELEGRAM_ADMIN_ID', 6884007048);
+
+            $priorityIcon = match($priority) {
+                'high' => '🔥',
+                'medium' => '⚡',
+                default => 'ℹ️'
+            };
+
+            $financialBadge = $isFinancial ? "\n💰 *[VẤN ĐỀ TÀI CHÍNH - CẦN CHỦ TỊCH LÊ HẢI PHÚC QUYẾT ĐỊNH]*" : "";
+            $approvalNote = $needsApproval ? "\n\n⚠️ *Vấn đề này cần Chủ Tịch phê duyệt trước khi thực hiện!*" : "";
+
+            $adminMessage = "📊 *BÁO CÁO MỚI TỪ HỆ THỐNG*{$financialBadge}\n\n" .
+                "━━━━━━━━━━━━━━━━━━\n" .
+                "🆔 *Report ID:* #{$report->id}\n" .
+                "📍 *Điểm:* {$location->name}\n" .
+                "👤 *Người báo:* {$username}\n" .
+                "📅 *Thời gian:* " . now()->format('d/m/Y H:i:s') . "\n" .
+                "{$priorityIcon} *Mức độ:* " . strtoupper($priority) . "\n\n" .
+                "📋 *NỘI DUNG:*\n_{$text}_\n\n" .
+                "🤖 *CHỈ ĐẠO TGĐ AI:*\n{$aiResponse}{$approvalNote}\n\n" .
+                "━━━━━━━━━━━━━━━━━━";
+
+            $this->bot->sendMessage($adminTelegramId, $adminMessage, 'Markdown');
+
+            \Log::info('Admin notification sent', [
+                'report_id' => $report->id,
+                'admin_id' => $adminTelegramId,
+                'is_financial' => $isFinancial
+            ]);
+
+        } catch (\Exception $e) {
+            \Log::error('Failed to notify admin: ' . $e->getMessage());
+        }
     }
 
     /**
@@ -400,11 +477,11 @@ class TelegramBotService
     protected function extractDeadline(string $text): ?\DateTime
     {
         $patterns = [
-            '/trước\s+(\d{1,2})[h:](\d{2})/i',      // trước 15h30
-            '/trước\s+(\d{1,2})\s*giờ/i',            // trước 15 giờ
-            '/(\d{1,2})[h:](\d{2})/i',               // 15h30
-            '/lúc\s+(\d{1,2})[h:](\d{2})/i',        // lúc 15h30
-            '/vào\s+(\d{1,2})[h:](\d{2})/i',        // vào 15h30
+            '/trước\s+(\d{1,2})[h:](\d{2})/i',
+            '/trước\s+(\d{1,2})\s*giờ/i',
+            '/(\d{1,2})[h:](\d{2})/i',
+            '/lúc\s+(\d{1,2})[h:](\d{2})/i',
+            '/vào\s+(\d{1,2})[h:](\d{2})/i',
         ];
 
         foreach ($patterns as $pattern) {
@@ -412,14 +489,12 @@ class TelegramBotService
                 $hour = (int) $matches[1];
                 $minute = isset($matches[2]) ? (int) $matches[2] : 0;
 
-                // Validate hour and minute
                 if ($hour < 0 || $hour > 23 || $minute < 0 || $minute > 59) {
                     continue;
                 }
 
                 $deadline = now()->setTime($hour, $minute, 0);
 
-                // If deadline is in the past, set it to tomorrow
                 if ($deadline < now()) {
                     $deadline->addDay();
                 }
