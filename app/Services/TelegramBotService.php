@@ -324,7 +324,7 @@ class TelegramBotService
         \Log::info('Deadline extracted: ' . ($deadline ? $deadline->toDateTimeString() : 'null'));
 
         // Determine status
-        $status = $needsChairmanApproval ? 'pending_approval' : ($deadline ? 'in_progress' : 'pending');
+        $status = $deadline ? 'in_progress' : 'pending';
         \Log::info('Status set: ' . $status);
 
         // Save to database
