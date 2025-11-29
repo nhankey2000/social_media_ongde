@@ -22,7 +22,7 @@ class ReportResource extends Resource
     protected static ?string $navigationLabel = 'Báo cáo';
     
     protected static ?string $modelLabel = 'Báo cáo';
-    
+    protected static ?string $navigationGroup = 'Quản lý';
     protected static ?string $pluralModelLabel = 'Báo cáo';
     
     protected static ?int $navigationSort = 2;

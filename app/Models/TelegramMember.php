@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Casts\AsArrayObject;
 
 class TelegramMember extends Model
 {
@@ -22,10 +23,36 @@ class TelegramMember extends Model
     ];
 
     protected $casts = [
-        'keywords' => 'array',
+        'keywords' => 'json', // Changed to json for better stability
         'is_active' => 'boolean',
         'last_seen_at' => 'datetime'
     ];
+
+    // Override to ensure keywords is always array
+    public function getKeywordsAttribute($value)
+    {
+        if (is_null($value) || $value === '') {
+            return [];
+        }
+
+        if (is_string($value)) {
+            $decoded = json_decode($value, true);
+            return is_array($decoded) ? $decoded : [];
+        }
+
+        return is_array($value) ? $value : [];
+    }
+
+    public function setKeywordsAttribute($value)
+    {
+        if (is_array($value)) {
+            // Clean and encode
+            $value = array_values(array_filter($value, fn($k) => !empty(trim($k))));
+            $this->attributes['keywords'] = json_encode($value);
+        } else {
+            $this->attributes['keywords'] = json_encode([]);
+        }
+    }
 
     // === RELATIONSHIPS ===
 

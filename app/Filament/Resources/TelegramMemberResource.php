@@ -107,7 +107,23 @@ class TelegramMemberResource extends Resource
                                 }
                                 return [];
                             })
-                            ->reorderable(),
+                            ->reorderable()
+                            ->live(onBlur: true)
+                            ->dehydrated()
+                            ->afterStateUpdated(function ($state, callable $set) {
+                                // Ensure always array
+                                if (!is_array($state)) {
+                                    $state = [];
+                                }
+                                // Clean empty values
+                                $state = array_values(array_filter($state, fn($k) => !empty(trim($k))));
+                                $set('keywords', $state);
+
+                                \Log::info('Keywords updated in form', [
+                                    'keywords' => $state,
+                                    'count' => count($state)
+                                ]);
+                            }),
                     ])
                     ->columns(2),
 

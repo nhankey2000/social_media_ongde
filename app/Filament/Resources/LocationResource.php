@@ -21,7 +21,7 @@ class  LocationResource extends Resource
     protected static ?string $navigationLabel = 'Điểm kinh doanh';
     
     protected static ?string $modelLabel = 'Điểm kinh doanh';
-    
+    protected static ?string $navigationGroup = 'Quản lý';
     protected static ?string $pluralModelLabel = 'Điểm kinh doanh';
     
     protected static ?int $navigationSort = 1;

@@ -43,13 +43,46 @@ class EditTelegramMember extends EditRecord
                 : [];
         }
 
+        // Clean keywords - remove empty values
+        if (isset($data['keywords']) && is_array($data['keywords'])) {
+            $data['keywords'] = array_values(array_filter($data['keywords'], fn($k) => !empty(trim($k))));
+        }
+
         // Log for debugging
         \Log::info('EditTelegramMember - Saving data', [
-            'keywords' => $data['keywords'] ?? null,
+            'member_id' => $this->record->id,
+            'keywords_before' => $this->record->keywords,
+            'keywords_after' => $data['keywords'] ?? null,
             'role' => $data['role'] ?? null
         ]);
 
         return $data;
+    }
+
+    protected function afterSave(): void
+    {
+        // Force reload model from database
+        $this->record->refresh();
+
+        // Verify keywords were saved
+        $keywordsCount = is_array($this->record->keywords) ? count($this->record->keywords) : 0;
+
+        \Log::info('EditTelegramMember - After save verification', [
+            'member_id' => $this->record->id,
+            'keywords_in_db' => $this->record->keywords,
+            'keywords_count' => $keywordsCount
+        ]);
+
+        // Clear any caching
+        \Cache::forget("telegram_member_{$this->record->id}");
+
+        // Show notification with keywords count
+        \Filament\Notifications\Notification::make()
+            ->success()
+            ->title('Đã lưu thành công!')
+            ->body("Keywords: {$keywordsCount} từ khóa")
+            ->duration(3000)
+            ->send();
     }
 
     protected function getRedirectUrl(): string
