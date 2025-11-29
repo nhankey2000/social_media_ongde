@@ -440,7 +440,40 @@ class TelegramBotService
                 ->get();
 
             if ($activeAssignments->count() > 1) {
-                // Có nhiều tasks → Hỏi lại xong task nào
+                // Có nhiều tasks → Check xem user có nói rõ task nào không
+                $textLower = mb_strtolower($text);
+                $matchedAssignment = null;
+                $bestMatchScore = 0;
+
+                foreach ($activeAssignments as $assignment) {
+                    $taskDesc = $this->extractTaskDescription($assignment->report->content);
+                    $taskDescLower = mb_strtolower($taskDesc);
+
+                    // Extract keywords từ task description
+                    $taskKeywords = preg_split('/[\s,.:;!?]+/', $taskDescLower);
+                    $taskKeywords = array_filter($taskKeywords, fn($w) => mb_strlen($w) > 2);
+
+                    // Count matching keywords
+                    $matchCount = 0;
+                    foreach ($taskKeywords as $keyword) {
+                        if (str_contains($textLower, $keyword)) {
+                            $matchCount++;
+                        }
+                    }
+
+                    if ($matchCount > $bestMatchScore) {
+                        $bestMatchScore = $matchCount;
+                        $matchedAssignment = $assignment;
+                    }
+                }
+
+                // Nếu match được task cụ thể → Complete ngay
+                if ($bestMatchScore >= 2) {
+                    $this->taskService->completeTask($matchedAssignment->report, $member, $chatId);
+                    return;
+                }
+
+                // Nếu không match → Hỏi lại
                 $response = "⚠️ *BẠN CÓ {$activeAssignments->count()} CÔNG VIỆC ĐANG LÀM*\n\n";
                 $response .= "Vui lòng cho biết cụ thể xong công việc nào:\n\n";
 

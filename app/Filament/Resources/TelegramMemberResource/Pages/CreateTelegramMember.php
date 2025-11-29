@@ -26,6 +26,19 @@ class CreateTelegramMember extends CreateRecord
             $data['keywords'] = TelegramMember::generateKeywords($data['role']);
         }
 
+        // Ensure keywords is array
+        if (isset($data['keywords']) && !is_array($data['keywords'])) {
+            $data['keywords'] = is_string($data['keywords'])
+                ? array_map('trim', explode(',', $data['keywords']))
+                : [];
+        }
+
+        // Log for debugging
+        \Log::info('CreateTelegramMember - Creating', [
+            'keywords' => $data['keywords'] ?? null,
+            'role' => $data['role'] ?? null
+        ]);
+
         return $data;
     }
 

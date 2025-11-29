@@ -96,15 +96,18 @@ class TelegramMemberResource extends Resource
 
                         Forms\Components\TagsInput::make('keywords')
                             ->label('Keywords')
-                            ->helperText('Các từ khóa để tự động giao việc. Nhấn Enter sau mỗi keyword.')
+                            ->helperText('Các từ khóa để tự động giao việc. Nhấn Enter hoặc dấu phẩy để thêm.')
                             ->placeholder('VD: máy tính, wifi, phần mềm')
+                            ->separator(',')
+                            ->splitKeys(['Enter', ',', 'Tab'])
                             ->suggestions(function ($get) {
                                 $role = $get('role');
                                 if ($role) {
                                     return TelegramMember::generateKeywords($role);
                                 }
                                 return [];
-                            }),
+                            })
+                            ->reorderable(),
                     ])
                     ->columns(2),
 

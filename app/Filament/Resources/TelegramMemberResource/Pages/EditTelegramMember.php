@@ -36,6 +36,19 @@ class EditTelegramMember extends EditRecord
             }
         }
 
+        // Ensure keywords is array (Filament TagsInput returns array)
+        if (isset($data['keywords']) && !is_array($data['keywords'])) {
+            $data['keywords'] = is_string($data['keywords'])
+                ? array_map('trim', explode(',', $data['keywords']))
+                : [];
+        }
+
+        // Log for debugging
+        \Log::info('EditTelegramMember - Saving data', [
+            'keywords' => $data['keywords'] ?? null,
+            'role' => $data['role'] ?? null
+        ]);
+
         return $data;
     }
 
