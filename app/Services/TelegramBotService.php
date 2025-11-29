@@ -431,15 +431,35 @@ class TelegramBotService
     ): void {
         Log::info("Completion report from {$username} at {$location->name}");
 
+        Log::info('handleCompletion - Start', [
+            'has_member' => $member !== null,
+            'has_taskService' => $this->taskService !== null,
+            'member_id' => $member?->id,
+            'text' => $text
+        ]);
+
         // Nếu có member và task service, xử lý completion cho task
         if ($member && $this->taskService) {
+            Log::info('handleCompletion - Has member and taskService, checking assignments');
+
             $activeAssignments = $member->taskAssignments()
                 ->whereIn('status', ['assigned', 'acknowledged'])
                 ->with('report')
                 ->orderBy('assigned_at', 'desc')
                 ->get();
 
+            Log::info('handleCompletion - Active assignments found', [
+                'count' => $activeAssignments->count(),
+                'assignments' => $activeAssignments->map(fn($a) => [
+                    'id' => $a->id,
+                    'report_id' => $a->report_id,
+                    'status' => $a->status
+                ])
+            ]);
+
             if ($activeAssignments->count() > 1) {
+                Log::info('handleCompletion - Multiple tasks detected, checking match');
+
                 // Có nhiều tasks → Check xem user có nói rõ task nào không
                 $textLower = mb_strtolower($text);
                 $matchedAssignment = null;
@@ -461,19 +481,32 @@ class TelegramBotService
                         }
                     }
 
+                    Log::info('handleCompletion - Task match check', [
+                        'task_desc' => $taskDesc,
+                        'match_count' => $matchCount,
+                        'keywords' => $taskKeywords
+                    ]);
+
                     if ($matchCount > $bestMatchScore) {
                         $bestMatchScore = $matchCount;
                         $matchedAssignment = $assignment;
                     }
                 }
 
+                Log::info('handleCompletion - Best match result', [
+                    'best_score' => $bestMatchScore,
+                    'matched_id' => $matchedAssignment?->id
+                ]);
+
                 // Nếu match được task cụ thể → Complete ngay
                 if ($bestMatchScore >= 2) {
+                    Log::info('handleCompletion - Match score >= 2, completing task');
                     $this->taskService->completeTask($matchedAssignment->report, $member, $chatId);
                     return;
                 }
 
                 // Nếu không match → Hỏi lại
+                Log::info('handleCompletion - No strong match, asking for clarification');
                 $response = "⚠️ *BẠN CÓ {$activeAssignments->count()} CÔNG VIỆC ĐANG LÀM*\n\n";
                 $response .= "Vui lòng cho biết cụ thể xong công việc nào:\n\n";
 
@@ -488,10 +521,13 @@ class TelegramBotService
                 $response .= "Ví dụ: \"Xong sửa máy tính\" hoặc \"Đã sửa xong máy POS\"";
 
                 $this->bot->sendMessage($chatId, $response, 'Markdown');
+                Log::info('handleCompletion - Sent clarification request');
                 return;
             }
 
             if ($activeAssignments->count() === 1) {
+                Log::info('handleCompletion - Single task detected');
+
                 // Chỉ có 1 task → Xác nhận và hoàn thành
                 $assignment = $activeAssignments->first();
                 $taskDesc = $this->extractTaskDescription($assignment->report->content);
@@ -513,8 +549,16 @@ class TelegramBotService
                     }
                 }
 
+                Log::info('handleCompletion - Single task check', [
+                    'mentioned' => $mentioned,
+                    'text_length' => mb_strlen($text),
+                    'keywords' => $taskKeywords
+                ]);
+
                 if (!$mentioned && mb_strlen($text) < 20) {
                     // User chỉ nói "xong" không rõ ràng → Xác nhận
+                    Log::info('handleCompletion - Asking for confirmation');
+
                     $response = "📋 *XÁC NHẬN HOÀN THÀNH*\n\n";
                     $response .= "Bạn đã hoàn thành công việc:\n";
                     $response .= "✅ *{$taskDesc}*\n\n";
@@ -528,16 +572,30 @@ class TelegramBotService
                         $assignment->id,
                         now()->addMinutes(5)
                     );
+
+                    Log::info('handleCompletion - Saved pending confirmation', [
+                        'assignment_id' => $assignment->id
+                    ]);
                     return;
                 }
 
                 // Hoàn thành task
+                Log::info('handleCompletion - Auto-completing single task');
                 $this->taskService->completeTask($assignment->report, $member, $chatId);
                 return;
             }
+
+            Log::info('handleCompletion - No active assignments found');
+        } else {
+            Log::info('handleCompletion - No member or taskService', [
+                'has_member' => $member !== null,
+                'has_taskService' => $this->taskService !== null
+            ]);
         }
 
         // Xử lý completion thông thường (không có task cụ thể)
+        Log::info('handleCompletion - Processing as generic completion');
+
         $response = "✅ *ĐÃ NHẬN XÁC NHẬN HOÀN THÀNH*\n\n" .
             "Cảm ơn {$username}! Tiếp tục duy trì chất lượng dịch vụ 5 sao. 🌟";
 
