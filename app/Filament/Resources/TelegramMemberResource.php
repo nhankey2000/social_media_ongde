@@ -172,10 +172,9 @@ class TelegramMemberResource extends Resource
                         return implode(', ', array_slice($record->keywords, 3));
                     }),
 
-                Tables\Columns\TextColumn::make('taskAssignments_count')
+                Tables\Columns\TextColumn::make('task_assignments_count')
                     ->label('Tasks')
                     ->counts('taskAssignments')
-                    ->sortable()
                     ->badge()
                     ->color('primary')
                     ->description(function (TelegramMember $record): string {
