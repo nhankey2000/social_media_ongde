@@ -16,6 +16,44 @@ class ListTelegramMembers extends ListRecords
     protected function getHeaderActions(): array
     {
         return [
+            Actions\Action::make('sync_telegram')
+                ->label('Sync từ Telegram')
+                ->icon('heroicon-o-arrow-path')
+                ->color('warning')
+                ->requiresConfirmation()
+                ->modalHeading('Sync Members từ Telegram')
+                ->modalDescription('Chọn location để quét và lưu tất cả members từ Telegram group')
+                ->form([
+                    \Filament\Forms\Components\Select::make('location_id')
+                        ->label('Chọn Location')
+                        ->options(\App\Models\Location::pluck('name', 'id'))
+                        ->required()
+                        ->searchable()
+                        ->placeholder('Chọn location cần sync'),
+                ])
+                ->action(function (array $data) {
+                    $location = \App\Models\Location::find($data['location_id']);
+                    $service = app(\App\Services\TelegramMemberService::class);
+
+                    $result = $service->syncGroupMembers($location);
+
+                    if ($result['success']) {
+                        $stats = $result['stats'];
+                        \Filament\Notifications\Notification::make()
+                            ->title('✅ Sync thành công!')
+                            ->body("Mới: {$stats['new']}, Cập nhật: {$stats['updated']}, Tổng: {$stats['total']}")
+                            ->success()
+                            ->duration(5000)
+                            ->send();
+                    } else {
+                        \Filament\Notifications\Notification::make()
+                            ->title('❌ Lỗi khi sync!')
+                            ->body($result['error'])
+                            ->danger()
+                            ->send();
+                    }
+                }),
+
             Actions\CreateAction::make(),
         ];
     }

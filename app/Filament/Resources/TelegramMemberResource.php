@@ -305,40 +305,7 @@ class TelegramMemberResource extends Resource
                         ->deselectRecordsAfterCompletion(),
                 ]),
             ])
-            ->headerActions([
-                Tables\Actions\Action::make('sync_from_telegram')
-                    ->label('Sync từ Telegram')
-                    ->icon('heroicon-o-arrow-path')
-                    ->color('primary')
-                    ->form([
-                        Forms\Components\Select::make('location_id')
-                            ->label('Chọn Location')
-                            ->options(Location::pluck('name', 'id'))
-                            ->required()
-                            ->searchable(),
-                    ])
-                    ->action(function (array $data) {
-                        $location = Location::find($data['location_id']);
-                        $service = app(TelegramMemberService::class);
-
-                        $result = $service->syncGroupMembers($location);
-
-                        if ($result['success']) {
-                            $stats = $result['stats'];
-                            Notification::make()
-                                ->title('Sync thành công!')
-                                ->body("Mới: {$stats['new']}, Cập nhật: {$stats['updated']}, Tổng: {$stats['total']}")
-                                ->success()
-                                ->send();
-                        } else {
-                            Notification::make()
-                                ->title('Lỗi khi sync!')
-                                ->body($result['error'])
-                                ->danger()
-                                ->send();
-                        }
-                    }),
-            ]);
+            ;
     }
 
     public static function getRelations(): array

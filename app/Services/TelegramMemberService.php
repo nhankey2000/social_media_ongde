@@ -30,22 +30,26 @@ class TelegramMemberService
             $newCount = 0;
             $updatedCount = 0;
 
-            // Lấy danh sách administrators (bao gồm cả members thường nếu là group nhỏ)
+            // Lấy danh sách administrators
             $chatAdmins = $this->bot->getChatAdministrators($chatId);
 
             foreach ($chatAdmins as $admin) {
                 $user = $admin->getUser();
-
-                // Bỏ qua bot
-                if ($user->getIsBot()) {
-                    continue;
-                }
 
                 $telegramId = $user->getId();
                 $username = $user->getUsername();
                 $firstName = $user->getFirstName();
                 $lastName = $user->getLastName();
                 $fullName = trim($firstName . ' ' . $lastName);
+
+                // Bỏ qua nếu là bot (check bằng username)
+                if ($username && (
+                        str_ends_with(strtolower($username), 'bot') ||
+                        str_contains(strtolower($username), '_bot')
+                    )) {
+                    Log::info("Skipping bot: {$username}");
+                    continue;
+                }
 
                 // Tự động phát hiện vai trò
                 $role = TelegramMember::detectRole($fullName);
@@ -83,6 +87,8 @@ class TelegramMemberService
                     'role' => $role ?? 'Chưa xác định',
                     'status' => $member->wasRecentlyCreated ? 'new' : 'updated'
                 ];
+
+                Log::info("Processed member: {$fullName} ({$role})");
             }
 
             Log::info("Member sync completed", [
@@ -104,6 +110,7 @@ class TelegramMemberService
 
         } catch (\Exception $e) {
             Log::error("Failed to sync members: " . $e->getMessage());
+            Log::error("Stack trace: " . $e->getTraceAsString());
 
             return [
                 'success' => false,
