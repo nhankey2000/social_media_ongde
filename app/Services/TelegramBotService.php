@@ -114,6 +114,16 @@ class TelegramBotService
                 return;
             }
 
+            // Check for pending completion confirmation
+            if ($member && $this->taskService) {
+                $pendingAssignmentId = \Cache::get("pending_completion_{$member->id}");
+                if ($pendingAssignmentId && $this->isConfirmation($text)) {
+                    Log::info('Processing as CONFIRMATION');
+                    $this->handleConfirmation($chatId, $member, $pendingAssignmentId, $text);
+                    return;
+                }
+            }
+
             // Check if acknowledgment ("Nhận việc")
             if ($this->isAcknowledgment($text) && $member && $this->taskService) {
                 Log::info('Processing as ACKNOWLEDGMENT');
@@ -276,6 +286,96 @@ class TelegramBotService
     }
 
     /**
+     * Check if message is confirmation (Có/Không)
+     */
+    protected function isConfirmation(string $text): bool
+    {
+        $textLower = mb_strtolower(trim($text));
+
+        $confirmKeywords = [
+            'có', 'yes', 'đúng', 'ok', 'oke', 'được',
+            'rồi', 'đúng rồi', 'không', 'no', 'sai',
+            'chưa', 'không phải'
+        ];
+
+        foreach ($confirmKeywords as $keyword) {
+            if ($textLower === $keyword || $textLower === $keyword . '!') {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Handle completion confirmation
+     */
+    protected function handleConfirmation(
+        int $chatId,
+        TelegramMember $member,
+        int $assignmentId,
+        string $text
+    ): void {
+        $textLower = mb_strtolower(trim($text));
+
+        $assignment = \App\Models\TaskAssignment::find($assignmentId);
+
+        if (!$assignment) {
+            \Cache::forget("pending_completion_{$member->id}");
+            $this->bot->sendMessage(
+                $chatId,
+                "❌ Không tìm thấy công việc cần xác nhận.",
+                'Markdown'
+            );
+            return;
+        }
+
+        // Check positive confirmation
+        $positiveKeywords = ['có', 'yes', 'đúng', 'ok', 'oke', 'được', 'rồi', 'đúng rồi'];
+        $isPositive = false;
+
+        foreach ($positiveKeywords as $keyword) {
+            if ($textLower === $keyword || $textLower === $keyword . '!') {
+                $isPositive = true;
+                break;
+            }
+        }
+
+        if ($isPositive) {
+            // Xác nhận đúng → Complete task
+            \Cache::forget("pending_completion_{$member->id}");
+            $this->taskService->completeTask($assignment->report, $member, $chatId);
+        } else {
+            // Xác nhận sai → Hủy và hỏi lại
+            \Cache::forget("pending_completion_{$member->id}");
+
+            $activeAssignments = $member->taskAssignments()
+                ->whereIn('status', ['assigned', 'acknowledged'])
+                ->with('report')
+                ->orderBy('assigned_at', 'desc')
+                ->get();
+
+            $response = "❌ *ĐÃ HỦY XÁC NHẬN*\n\n";
+
+            if ($activeAssignments->count() > 0) {
+                $response .= "Bạn đang có {$activeAssignments->count()} công việc:\n\n";
+
+                foreach ($activeAssignments as $index => $asg) {
+                    $taskNumber = $index + 1;
+                    $taskDesc = $this->extractTaskDescription($asg->report->content);
+                    $response .= "{$taskNumber}. {$taskDesc}\n";
+                }
+
+                $response .= "\n💡 Vui lòng nói rõ: \"Xong [tên công việc]\"";
+            } else {
+                $response .= "Bạn không có công việc nào đang làm.";
+            }
+
+            $this->bot->sendMessage($chatId, $response, 'Markdown');
+        }
+    }
+
+    /**
      * Handle acknowledgment
      */
     protected function handleAcknowledgment(int $chatId, Location $location, TelegramMember $member): void
@@ -333,14 +433,73 @@ class TelegramBotService
 
         // Nếu có member và task service, xử lý completion cho task
         if ($member && $this->taskService) {
-            $activeAssignment = $member->taskAssignments()
+            $activeAssignments = $member->taskAssignments()
                 ->whereIn('status', ['assigned', 'acknowledged'])
-                ->latest('assigned_at')
-                ->first();
+                ->with('report')
+                ->orderBy('assigned_at', 'desc')
+                ->get();
 
-            if ($activeAssignment) {
-                // Hoàn thành task cụ thể
-                $this->taskService->completeTask($activeAssignment->report, $member, $chatId);
+            if ($activeAssignments->count() > 1) {
+                // Có nhiều tasks → Hỏi lại xong task nào
+                $response = "⚠️ *BẠN CÓ {$activeAssignments->count()} CÔNG VIỆC ĐANG LÀM*\n\n";
+                $response .= "Vui lòng cho biết cụ thể xong công việc nào:\n\n";
+
+                foreach ($activeAssignments as $index => $assignment) {
+                    $taskNumber = $index + 1;
+                    $taskDesc = $this->extractTaskDescription($assignment->report->content);
+                    $response .= "{$taskNumber}. {$taskDesc}\n";
+                }
+
+                $response .= "\n💡 *Hướng dẫn:*\n";
+                $response .= "Trả lời: \"Xong [mô tả công việc]\"\n";
+                $response .= "Ví dụ: \"Xong sửa máy tính\" hoặc \"Đã sửa xong máy POS\"";
+
+                $this->bot->sendMessage($chatId, $response, 'Markdown');
+                return;
+            }
+
+            if ($activeAssignments->count() === 1) {
+                // Chỉ có 1 task → Xác nhận và hoàn thành
+                $assignment = $activeAssignments->first();
+                $taskDesc = $this->extractTaskDescription($assignment->report->content);
+
+                // Check xem có match với task description không
+                $textLower = mb_strtolower($text);
+                $taskDescLower = mb_strtolower($taskDesc);
+
+                // Extract keywords từ task description
+                $taskKeywords = preg_split('/[\s,.:;!?]+/', $taskDescLower);
+                $taskKeywords = array_filter($taskKeywords, fn($w) => mb_strlen($w) > 3);
+
+                // Check xem user có nhắc đến task keywords không
+                $mentioned = false;
+                foreach ($taskKeywords as $keyword) {
+                    if (str_contains($textLower, $keyword)) {
+                        $mentioned = true;
+                        break;
+                    }
+                }
+
+                if (!$mentioned && mb_strlen($text) < 20) {
+                    // User chỉ nói "xong" không rõ ràng → Xác nhận
+                    $response = "📋 *XÁC NHẬN HOÀN THÀNH*\n\n";
+                    $response .= "Bạn đã hoàn thành công việc:\n";
+                    $response .= "✅ *{$taskDesc}*\n\n";
+                    $response .= "Xác nhận đúng không? (Có/Không)";
+
+                    $this->bot->sendMessage($chatId, $response, 'Markdown');
+
+                    // Lưu pending confirmation (có thể dùng cache hoặc session)
+                    \Cache::put(
+                        "pending_completion_{$member->id}",
+                        $assignment->id,
+                        now()->addMinutes(5)
+                    );
+                    return;
+                }
+
+                // Hoàn thành task
+                $this->taskService->completeTask($assignment->report, $member, $chatId);
                 return;
             }
         }
@@ -363,6 +522,26 @@ class TelegramBotService
         ]);
 
         Log::info("Completion report saved for location {$location->id}");
+    }
+
+    /**
+     * Extract short task description from report content
+     */
+    protected function extractTaskDescription(string $content): string
+    {
+        // Lấy 50 ký tự đầu hoặc câu đầu tiên
+        $content = trim($content);
+
+        // Tìm dấu chấm câu đầu tiên
+        $endPos = mb_strpos($content, '.');
+        if ($endPos !== false && $endPos < 100) {
+            return mb_substr($content, 0, $endPos);
+        }
+
+        // Nếu không có dấu chấm, lấy 60 ký tự
+        return mb_strlen($content) > 60
+            ? mb_substr($content, 0, 60) . '...'
+            : $content;
     }
 
     /**
