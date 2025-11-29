@@ -105,7 +105,7 @@ class TelegramMember extends Model
             'IT' => [
                 'máy tính', 'laptop', 'mạng', 'wifi', 'phần mềm', 'hệ thống',
                 'internet', 'server', 'database', 'website', 'app', 'pos',
-                'in ấn', 'máy in', 'scanner', 'email', 'bảo mật'
+                'in ấn', 'máy in', 'scanner', 'email', 'bảo mật','camera'
             ],
             'Bảo trì' => [
                 'hỏng', 'hư', 'sửa', 'thay', 'máy lạnh', 'điện', 'nước',
