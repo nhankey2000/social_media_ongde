@@ -18,6 +18,7 @@ use App\Filament\Resources\MenuCategoryResource;
 use App\Filament\Resources\UserResource;
 use App\Filament\Resources\ReportResource;
 use App\Filament\Resources\LocationResource;
+use App\Filament\Resources\TelegramMemberResource;
 use App\Filament\Resources\MenuNhaHangResource;
 use App\Models\MenuNhaHang;
 use Filament\Http\Middleware\Authenticate;
@@ -79,6 +80,7 @@ class AdminPanelProvider extends PanelProvider
                 MenuNhaHangResource::class,
                 LocationResource::class,
                 ReportResource::class,
+                TelegramMemberResource::class,
             ])
 //
 //            ->viteTheme('resources/css/filament/theme.css')

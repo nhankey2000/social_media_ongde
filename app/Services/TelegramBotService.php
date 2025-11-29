@@ -5,21 +5,30 @@ namespace App\Services;
 use TelegramBot\Api\BotApi;
 use App\Models\Location;
 use App\Models\Report;
+use App\Models\TelegramMember;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
-
 
 class TelegramBotService
 {
     protected BotApi $bot;
     protected OpenAIService $openAI;
+    protected ?TelegramMemberService $memberService = null;
+    protected ?TaskAssignmentService $taskService = null;
 
     public function __construct()
     {
         // Hardcode token để chạy ngay
         $this->bot = new BotApi('7617448862:AAH7G_WdSzFugy0xqouoxEl1s9xOLy4gwy0');
-
         $this->openAI = new OpenAIService();
+
+        // Lazy load services để tránh lỗi nếu chưa cài đặt
+        try {
+            $this->memberService = app(TelegramMemberService::class);
+            $this->taskService = app(TaskAssignmentService::class);
+        } catch (\Exception $e) {
+            Log::warning('Auto-assignment services not available: ' . $e->getMessage());
+        }
     }
 
     /**
@@ -28,10 +37,10 @@ class TelegramBotService
     public function handleWebhook(array $update): void
     {
         try {
-            \Log::info('=== WEBHOOK HANDLER STARTED ===', ['update' => $update]);
+            Log::info('=== WEBHOOK HANDLER STARTED ===', ['update' => $update]);
 
             if (!isset($update['message'])) {
-                \Log::info('No message in update - SKIPPED');
+                Log::info('No message in update - SKIPPED');
                 return;
             }
 
@@ -50,60 +59,86 @@ class TelegramBotService
             $telegramId = $from['id'] ?? null;
             $telegramUsername = $from['username'] ?? null;
 
-            \Log::info('Message parsed', [
+            Log::info('Message parsed', [
                 'chatId' => $chatId,
                 'username' => $username,
                 'text' => $text
             ]);
 
             // Find or create location by chat_id
-            \Log::info('Looking for location with chat_id: ' . $chatId);
+            Log::info('Looking for location with chat_id: ' . $chatId);
             $location = Location::where('chat_id', $chatId)->first();
 
             if (!$location) {
-                \Log::info('Location NOT FOUND - Creating new...');
-
+                Log::info('Location NOT FOUND - Creating new...');
                 $location = $this->autoCreateLocation($chatId, $chatTitle, $chatType);
 
-                \Log::info('Location created', [
+                Log::info('Location created', [
                     'id' => $location->id,
                     'name' => $location->name,
                     'code' => $location->code
                 ]);
 
                 $this->sendWelcomeMessage($chatId, $location);
+
+                // Auto-sync members khi tạo location mới (nếu có service)
+                if ($this->memberService) {
+                    try {
+                        $this->memberService->syncGroupMembers($location);
+                    } catch (\Exception $e) {
+                        Log::warning('Failed to auto-sync members: ' . $e->getMessage());
+                    }
+                }
             } else {
-                \Log::info('Location FOUND', [
+                Log::info('Location FOUND', [
                     'id' => $location->id,
                     'name' => $location->name
                 ]);
             }
 
+            // Cập nhật/tạo member từ tin nhắn (nếu có service)
+            $member = null;
+            if ($this->memberService) {
+                try {
+                    $member = $this->memberService->updateMemberFromMessage($location, $from);
+                    Log::info("Member updated: {$member->full_name} (" . ($member->role ?? 'no role') . ")");
+                } catch (\Exception $e) {
+                    Log::warning('Failed to update member: ' . $e->getMessage());
+                }
+            }
+
             // Check for commands
             if (str_starts_with($text, '/')) {
-                \Log::info('Processing as COMMAND');
-                $this->handleCommand($chatId, $text, $location);
+                Log::info('Processing as COMMAND');
+                $this->handleCommand($chatId, $text, $location, $member);
+                return;
+            }
+
+            // Check if acknowledgment ("Nhận việc")
+            if ($this->isAcknowledgment($text) && $member && $this->taskService) {
+                Log::info('Processing as ACKNOWLEDGMENT');
+                $this->handleAcknowledgment($chatId, $location, $member);
                 return;
             }
 
             // Check if completion report
             if ($this->isCompletionReport($text)) {
-                \Log::info('Processing as COMPLETION REPORT');
-                $this->handleCompletion($chatId, $location, $username, $telegramId, $text);
+                Log::info('Processing as COMPLETION REPORT');
+                $this->handleCompletion($chatId, $location, $username, $telegramId, $text, $member);
                 return;
             }
 
             // Handle regular report
-            \Log::info('Processing as REGULAR REPORT');
+            Log::info('Processing as REGULAR REPORT');
             $this->handleReport($chatId, $location, $username, $telegramId, $telegramUsername, $text);
 
-            \Log::info('=== WEBHOOK HANDLER COMPLETED ===');
+            Log::info('=== WEBHOOK HANDLER COMPLETED ===');
 
         } catch (\Exception $e) {
-            \Log::error('=== WEBHOOK HANDLER ERROR ===');
-            \Log::error('Error message: ' . $e->getMessage());
-            \Log::error('Error file: ' . $e->getFile() . ':' . $e->getLine());
-            \Log::error('Stack trace: ' . $e->getTraceAsString());
+            Log::error('=== WEBHOOK HANDLER ERROR ===');
+            Log::error('Error message: ' . $e->getMessage());
+            Log::error('Error file: ' . $e->getFile() . ':' . $e->getLine());
+            Log::error('Stack trace: ' . $e->getTraceAsString());
 
             if (isset($chatId)) {
                 try {
@@ -112,7 +147,7 @@ class TelegramBotService
                         "❌ Có lỗi xảy ra: " . $e->getMessage()
                     );
                 } catch (\Exception $sendError) {
-                    \Log::error('Failed to send error message: ' . $sendError->getMessage());
+                    Log::error('Failed to send error message: ' . $sendError->getMessage());
                 }
             }
         }
@@ -177,7 +212,7 @@ class TelegramBotService
     /**
      * Handle bot commands
      */
-    protected function handleCommand(int $chatId, string $command, Location $location): void
+    protected function handleCommand(int $chatId, string $command, Location $location, ?TelegramMember $member = null): void
     {
         $cmd = explode(' ', $command)[0];
 
@@ -186,6 +221,22 @@ class TelegramBotService
         switch ($cmd) {
             case '/start':
                 $this->sendWelcomeMessage($chatId, $location);
+                break;
+
+            case '/sync':
+                $this->handleSyncMembers($chatId, $location);
+                break;
+
+            case '/members':
+                $this->handleListMembers($chatId, $location);
+                break;
+
+            case '/mytasks':
+                if ($member) {
+                    $this->handleMyTasks($chatId, $member);
+                } else {
+                    $this->bot->sendMessage($chatId, "⚠️ Không tìm thấy thông tin member của bạn.");
+                }
                 break;
 
             case '/status':
@@ -208,6 +259,45 @@ class TelegramBotService
     }
 
     /**
+     * Check if message is acknowledgment
+     */
+    protected function isAcknowledgment(string $text): bool
+    {
+        $keywords = ['nhận việc', 'ok nhận', 'đã nhận', 'received', 'accept', 'nhận', 'oke nhận'];
+        $textLower = mb_strtolower($text);
+
+        foreach ($keywords as $keyword) {
+            if (str_contains($textLower, $keyword)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Handle acknowledgment
+     */
+    protected function handleAcknowledgment(int $chatId, Location $location, TelegramMember $member): void
+    {
+        if (!$this->taskService) {
+            return;
+        }
+
+        // Tìm task gần nhất được giao cho member này
+        $latestAssignment = $member->taskAssignments()
+            ->where('status', 'assigned')
+            ->latest('assigned_at')
+            ->first();
+
+        if ($latestAssignment) {
+            $this->taskService->acknowledgeTask($latestAssignment->report, $member, $chatId);
+        } else {
+            $this->bot->sendMessage($chatId, "ℹ️ Không tìm thấy việc cần xác nhận.");
+        }
+    }
+
+    /**
      * Check if message indicates completion
      */
     protected function isCompletionReport(string $text): bool
@@ -218,7 +308,7 @@ class TelegramBotService
             'finish', 'finished', 'fixed', 'resolved', 'giải quyết xong'
         ];
 
-        $textLower = strtolower($text);
+        $textLower = mb_strtolower($text);
         foreach ($keywords as $keyword) {
             if (str_contains($textLower, $keyword)) {
                 return true;
@@ -236,10 +326,26 @@ class TelegramBotService
         Location $location,
         string $username,
         ?int $telegramId,
-        string $text
+        string $text,
+        ?TelegramMember $member = null
     ): void {
         Log::info("Completion report from {$username} at {$location->name}");
 
+        // Nếu có member và task service, xử lý completion cho task
+        if ($member && $this->taskService) {
+            $activeAssignment = $member->taskAssignments()
+                ->whereIn('status', ['assigned', 'acknowledged'])
+                ->latest('assigned_at')
+                ->first();
+
+            if ($activeAssignment) {
+                // Hoàn thành task cụ thể
+                $this->taskService->completeTask($activeAssignment->report, $member, $chatId);
+                return;
+            }
+        }
+
+        // Xử lý completion thông thường (không có task cụ thể)
         $response = "✅ *ĐÃ NHẬN XÁC NHẬN HOÀN THÀNH*\n\n" .
             "Cảm ơn {$username}! Tiếp tục duy trì chất lượng dịch vụ 5 sao. 🌟";
 
@@ -270,21 +376,21 @@ class TelegramBotService
         ?string $telegramUsername,
         string $text
     ): void {
-        \Log::info('=== HANDLE REPORT START ===');
-        \Log::info("Report from {$username} at {$location->name}");
+        Log::info('=== HANDLE REPORT START ===');
+        Log::info("Report from {$username} at {$location->name}");
 
         // Send processing message
         try {
-            \Log::info('Sending processing message...');
+            Log::info('Sending processing message...');
             $this->bot->sendMessage($chatId, "⏳ Tổng Giám Đốc AI đang phân tích báo cáo...");
-            \Log::info('Processing message sent ✓');
+            Log::info('Processing message sent ✓');
         } catch (\Exception $e) {
-            \Log::error('Failed to send processing message: ' . $e->getMessage());
+            Log::error('Failed to send processing message: ' . $e->getMessage());
         }
 
         // Call AI
         try {
-            \Log::info('Calling AI...');
+            Log::info('Calling AI...');
             $aiResult = $this->openAI->getCEODirective(
                 $location->name,
                 $username,
@@ -302,12 +408,12 @@ class TelegramBotService
                 $needsChairmanApproval = $isFinancial;
             }
 
-            \Log::info('AI response received ✓', [
+            Log::info('AI response received ✓', [
                 'is_financial' => $isFinancial,
                 'needs_approval' => $needsChairmanApproval
             ]);
         } catch (\Exception $e) {
-            \Log::error('Failed to get AI directive: ' . $e->getMessage());
+            Log::error('Failed to get AI directive: ' . $e->getMessage());
 
             $this->bot->sendMessage(
                 $chatId,
@@ -321,19 +427,19 @@ class TelegramBotService
         if ($isFinancial) {
             $priority = 'high'; // Vấn đề tài chính luôn là high priority
         }
-        \Log::info('Priority determined: ' . $priority);
+        Log::info('Priority determined: ' . $priority);
 
         // Extract deadline
         $deadline = $this->extractDeadline($aiResponse);
-        \Log::info('Deadline extracted: ' . ($deadline ? $deadline->toDateTimeString() : 'null'));
+        Log::info('Deadline extracted: ' . ($deadline ? $deadline->toDateTimeString() : 'null'));
 
         // Determine status
         $status = $deadline ? 'in_progress' : 'pending';
-        \Log::info('Status set: ' . $status);
+        Log::info('Status set: ' . $status);
 
         // Save to database
         try {
-            \Log::info('Saving report to database...');
+            Log::info('Saving report to database...');
             $report = Report::create([
                 'location_id' => $location->id,
                 'reporter_name' => $username,
@@ -345,15 +451,15 @@ class TelegramBotService
                 'priority' => $priority,
                 'deadline' => $deadline,
             ]);
-            \Log::info('Report saved ✓', ['report_id' => $report->id]);
+            Log::info('Report saved ✓', ['report_id' => $report->id]);
 
         } catch (\Exception $e) {
-            \Log::error('Failed to save report: ' . $e->getMessage());
-            \Log::error('SQL Error: ' . $e->getTraceAsString());
+            Log::error('Failed to save report: ' . $e->getMessage());
+            Log::error('SQL Error: ' . $e->getTraceAsString());
             throw $e;
         }
 
-        // === 1️⃣ GỬI TIN NHẮN VÀO GROUP ===
+        // === 1️⃣ GỬI CHỈ ĐẠO TGĐ AI VÀO GROUP ===
         $icon = match($priority) {
             'high' => '🔥',
             'medium' => '⚡',
@@ -363,22 +469,159 @@ class TelegramBotService
         $groupMessage = "{$icon} *CHỈ ĐẠO TGĐ AI:*\n\n{$aiResponse}";
 
         try {
-            \Log::info('Sending AI response to group...');
+            Log::info('Sending AI response to group...');
             $this->bot->sendMessage($chatId, $groupMessage, 'Markdown');
-            \Log::info('Group message sent ✓');
+            Log::info('Group message sent ✓');
         } catch (\Exception $e) {
-            \Log::error("Failed to send group message: " . $e->getMessage());
+            Log::error("Failed to send group message: " . $e->getMessage());
             try {
                 $this->bot->sendMessage($chatId, strip_tags($groupMessage));
             } catch (\Exception $e2) {
-                \Log::error("Failed to send plain text: " . $e2->getMessage());
+                Log::error("Failed to send plain text: " . $e2->getMessage());
             }
         }
 
-        // === 2️⃣ GỬI BẢN SAO CHO ADMIN/CHỦ TỊCH ===
+        // === 2️⃣ TỰ ĐỘNG GIAO VIỆC (nếu không phải vấn đề tài chính) ===
+        if (!$isFinancial && $this->memberService && $this->taskService) {
+            try {
+                $assignmentResult = $this->taskService->autoAssignTasks($report, $location);
+
+                if ($assignmentResult['assigned']) {
+                    Log::info("Auto-assigned to {$assignmentResult['count']} members");
+
+                    // Gửi tóm tắt giao việc
+                    $summary = "\n📊 *ĐÃ GIAO VIỆC CHO:*\n";
+                    foreach ($assignmentResult['members'] as $item) {
+                        $summary .= "• {$item['member']} ({$item['role']})\n";
+                    }
+
+                    try {
+                        $this->bot->sendMessage($chatId, $summary, 'Markdown');
+                    } catch (\Exception $e) {
+                        Log::error("Failed to send assignment summary: " . $e->getMessage());
+                    }
+                } else {
+                    Log::info("No auto-assignment: " . ($assignmentResult['reason'] ?? 'Unknown reason'));
+                }
+            } catch (\Exception $e) {
+                Log::error("Auto-assignment failed: " . $e->getMessage());
+            }
+        }
+
+        // === 3️⃣ GỬI BẢN SAO CHO ADMIN/CHỦ TỊCH ===
         $this->sendReportToAdmin($report, $location, $username, $text, $aiResponse, $priority, $isFinancial, $needsChairmanApproval);
 
-        \Log::info('=== HANDLE REPORT COMPLETED ===');
+        Log::info('=== HANDLE REPORT COMPLETED ===');
+    }
+
+    /**
+     * Handle /sync command - Sync group members
+     */
+    protected function handleSyncMembers(int $chatId, Location $location): void
+    {
+        if (!$this->memberService) {
+            $this->bot->sendMessage($chatId, "⚠️ Tính năng này chưa được kích hoạt.");
+            return;
+        }
+
+        $this->bot->sendMessage($chatId, "🔄 Đang quét danh sách thành viên...");
+
+        $result = $this->memberService->syncGroupMembers($location);
+
+        if ($result['success']) {
+            $stats = $result['stats'];
+            $message = "✅ *HOÀN TẤT QUÉT MEMBERS*\n\n" .
+                "📊 Thống kê:\n" .
+                "• Mới: {$stats['new']}\n" .
+                "• Cập nhật: {$stats['updated']}\n" .
+                "• Tổng: {$stats['total']}\n\n" .
+                "👥 Danh sách:\n";
+
+            foreach (array_slice($result['members'], 0, 10) as $m) {
+                $badge = $m['status'] === 'new' ? '🆕' : '🔄';
+                $message .= "{$badge} {$m['name']} - {$m['role']}\n";
+            }
+
+            if (count($result['members']) > 10) {
+                $message .= "\n... và " . (count($result['members']) - 10) . " người khác";
+            }
+
+            $this->bot->sendMessage($chatId, $message, 'Markdown');
+        } else {
+            $this->bot->sendMessage($chatId, "❌ Lỗi: " . $result['error']);
+        }
+    }
+
+    /**
+     * Handle /members command - List all members
+     */
+    protected function handleListMembers(int $chatId, Location $location): void
+    {
+        if (!$this->memberService) {
+            $this->bot->sendMessage($chatId, "⚠️ Tính năng này chưa được kích hoạt.");
+            return;
+        }
+
+        $members = TelegramMember::where('location_id', $location->id)
+            ->where('is_active', true)
+            ->get();
+
+        if ($members->isEmpty()) {
+            $this->bot->sendMessage($chatId, "ℹ️ Chưa có thành viên nào. Gửi /sync để quét.");
+            return;
+        }
+
+        $message = "👥 *DANH SÁCH THÀNH VIÊN*\n\n";
+
+        $byRole = $members->groupBy('role');
+        foreach ($byRole as $role => $roleMembers) {
+            $roleName = $role ?? 'Chưa xác định';
+            $message .= "*{$roleName}:*\n";
+            foreach ($roleMembers as $m) {
+                $message .= "• {$m->full_name}\n";
+            }
+            $message .= "\n";
+        }
+
+        $this->bot->sendMessage($chatId, $message, 'Markdown');
+    }
+
+    /**
+     * Handle /mytasks command - Show user's tasks
+     */
+    protected function handleMyTasks(int $chatId, TelegramMember $member): void
+    {
+        if (!$this->taskService) {
+            $this->bot->sendMessage($chatId, "⚠️ Tính năng này chưa được kích hoạt.");
+            return;
+        }
+
+        $tasks = $member->getActiveTasks();
+
+        if ($tasks->isEmpty()) {
+            $this->bot->sendMessage($chatId, "✅ Bạn không có việc đang chờ xử lý.");
+            return;
+        }
+
+        $message = "📋 *VIỆC CỦA BẠN*\n\n";
+
+        foreach ($tasks as $task) {
+            $report = $task->report;
+            $status = $task->status === 'assigned' ? '🆕 Mới' : '✅ Đã nhận';
+
+            $message .= "*Report #{$report->id}*\n" .
+                "Status: {$status}\n" .
+                "📝 {$task->task_description}\n" .
+                "⏰ Giao lúc: " . $task->assigned_at->format('H:i d/m/Y') . "\n";
+
+            if ($report->deadline) {
+                $message .= "⏳ Deadline: " . $report->deadline->format('H:i d/m/Y') . "\n";
+            }
+
+            $message .= "\n";
+        }
+
+        $this->bot->sendMessage($chatId, $message, 'Markdown');
     }
 
     /**
@@ -396,7 +639,7 @@ class TelegramBotService
             'tuyển', 'recruitment', 'lương', 'salary', 'thưởng', 'bonus',
             'tăng lương', 'phụ cấp', 'trợ cấp',
             'phê duyệt', 'approval', 'xin phép', 'cần tiền',
-            'hết tiền', 'thiếu tiền', 'cần mua'
+            'hết tiền', 'thiếu tiền', 'cần mua', 'giá'
         ];
 
         $textLower = mb_strtolower($text);
@@ -441,14 +684,14 @@ class TelegramBotService
 
             $this->bot->sendMessage($adminTelegramId, $adminMessage, 'Markdown');
 
-            \Log::info('Admin notification sent', [
+            Log::info('Admin notification sent', [
                 'report_id' => $report->id,
                 'admin_id' => $adminTelegramId,
                 'is_financial' => $isFinancial
             ]);
 
         } catch (\Exception $e) {
-            \Log::error('Failed to notify admin: ' . $e->getMessage());
+            Log::error('Failed to notify admin: ' . $e->getMessage());
         }
     }
 
@@ -457,7 +700,7 @@ class TelegramBotService
      */
     protected function determinePriority(string $response): string
     {
-        $responseUpper = strtoupper($response);
+        $responseUpper = mb_strtoupper($response);
 
         if (str_contains($responseUpper, 'KHẨN') ||
             str_contains($responseUpper, 'GẤP') ||
@@ -522,8 +765,12 @@ class TelegramBotService
             "✅ *Group này đã được đăng ký tự động!*\n\n" .
             "📝 *Cách sử dụng:*\n" .
             "• Gửi báo cáo bằng cách nhắn tin vào group\n" .
-            "• Báo hoàn thành: Gửi tin có từ \"xong\" hoặc \"hoàn thành\"\n\n" .
+            "• Báo hoàn thành: Gửi tin có từ \"xong\" hoặc \"hoàn thành\"\n" .
+            "• Nhận việc: Gửi \"Nhận việc\" khi được giao task\n\n" .
             "📋 *Commands:*\n" .
+            "/sync - Quét danh sách thành viên\n" .
+            "/members - Xem danh sách members\n" .
+            "/mytasks - Xem việc của tôi\n" .
             "/status - Xem trạng thái reports\n" .
             "/info - Thông tin điểm\n" .
             "/help - Hướng dẫn chi tiết";
@@ -588,22 +835,31 @@ class TelegramBotService
         $message = "📚 *HƯỚNG DẪN SỬ DỤNG CEO AI BOT*\n\n" .
             "*1️⃣ Gửi báo cáo:*\n" .
             "Chỉ cần nhắn tin bình thường, AI sẽ tự động phân tích và chỉ đạo.\n\n" .
-            "*2️⃣ Báo hoàn thành:*\n" .
+            "*2️⃣ Nhận việc:*\n" .
+            "Khi được giao việc, reply \"Nhận việc\" để xác nhận.\n\n" .
+            "*3️⃣ Báo hoàn thành:*\n" .
             "Gửi tin có từ: xong, hoàn thành, đã làm xong, etc.\n\n" .
-            "*3️⃣ Commands:*\n" .
+            "*4️⃣ Commands:*\n" .
             "/start - Xem thông tin chào mừng\n" .
+            "/sync - Quét members trong group\n" .
+            "/members - Xem danh sách members\n" .
+            "/mytasks - Xem việc của tôi\n" .
             "/status - Xem trạng thái báo cáo\n" .
             "/info - Xem thông tin điểm\n" .
             "/help - Xem hướng dẫn này\n\n" .
-            "*4️⃣ Ví dụ báo cáo:*\n" .
+            "*5️⃣ Ví dụ báo cáo:*\n" .
             "• Máy POS lỗi không in được hóa đơn\n" .
             "• Khách phàn nàn về tốc độ phục vụ\n" .
             "• Hôm nay doanh thu 15 triệu\n" .
             "• Đã sửa xong máy lạnh\n\n" .
-            "*5️⃣ Tips:*\n" .
-            "• Báo cáo càng chi tiết càng tốt\n" .
-            "• AI sẽ tự động xác định mức độ ưu tiên\n" .
-            "• AI sẽ tự động đặt deadline nếu cần";
+            "*6️⃣ Tự động giao việc:*\n" .
+            "• Bot sẽ tự động giao việc cho đúng người\n" .
+            "• Dựa trên vai trò và từ khóa\n" .
+            "• VD: \"Máy POS lỗi\" → giao cho IT\n\n" .
+            "*7️⃣ Tips:*\n" .
+            "• Đặt tên có vai trò (VD: Tân Bảo Trì, Nhân IT)\n" .
+            "• Chạy /sync để cập nhật members\n" .
+            "• Báo cáo càng chi tiết càng tốt";
 
         try {
             $this->bot->sendMessage($chatId, $message, 'Markdown');

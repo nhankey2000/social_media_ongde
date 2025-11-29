@@ -850,3 +850,34 @@ Route::match(['get', 'post'], '/webhook/telegram', function (Request $request) {
     VerifyCsrfToken::class,
     'throttle:api',    // bỏ rate limit
 ]);
+
+
+use App\Http\Controllers\TelegramMemberController;
+
+// Routes cho quản lý Telegram Members
+Route::prefix('admin/locations/{location}')->name('admin.locations.')->group(function () {
+
+    // Members management
+    Route::get('/members', [TelegramMemberController::class, 'index'])
+        ->name('members.index');
+
+    Route::post('/members/sync', [TelegramMemberController::class, 'sync'])
+        ->name('members.sync');
+
+    Route::get('/members/test-assign', [TelegramMemberController::class, 'testAssign'])
+        ->name('members.test-assign');
+
+    Route::post('/members/send-reminders', [TelegramMemberController::class, 'sendReminders'])
+        ->name('members.send-reminders');
+
+    Route::get('/members/stats', [TelegramMemberController::class, 'roleStats'])
+        ->name('members.stats');
+});
+
+Route::prefix('admin/members/{member}')->name('admin.members.')->group(function () {
+    Route::get('/', [TelegramMemberController::class, 'show'])
+        ->name('show');
+
+    Route::patch('/', [TelegramMemberController::class, 'update'])
+        ->name('update');
+});
