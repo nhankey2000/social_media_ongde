@@ -1,58 +1,54 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\Webhooks;
 
+use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
-use GuzzleHttp\Client;
-use Symfony\Component\HttpFoundation\StreamedResponse;
-
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Storage;
 class DriveWebhookController extends Controller
 {
     public function download(Request $request)
     {
-        $url = $request->input('file_url');
+        $driveUrl = $request->file_url;
 
-        if (!$url) {
-            return response()->json(['error' => 'file_url is required'], 400);
+        // Lấy file ID từ Google Drive
+        preg_match('/\/d\/(.*?)\//', $driveUrl, $matches);
+        $fileId = $matches[1] ?? null;
+
+        if (!$fileId) {
+            return response()->json([
+                'error' => 'Invalid Google Drive link'
+            ], 400);
         }
 
-        // ✅ Lấy FILE_ID
-        if (!preg_match('/(?:\/d\/|id=)([a-zA-Z0-9_-]{10,})/', $url, $m)) {
-            return response()->json(['error' => 'Invalid Drive URL'], 400);
-        }
-
-        $fileId = $m[1];
+        // Link tải trực tiếp (không bị robots.txt)
         $downloadUrl = "https://drive.google.com/uc?export=download&id={$fileId}";
 
-        $client = new Client([
-            'allow_redirects' => true,
-            'timeout' => 0,
-            'verify' => false,
-        ]);
+        $fileName = 'video_' . time() . '.mp4';
+        $path = 'uploads/videos/' . $fileName;
 
-        // ✅ Request dạng stream
-        $response = $client->request('GET', $downloadUrl, [
+        // Download file
+        $response = Http::withOptions([
             'stream' => true,
-            'headers' => [
-                'User-Agent' => 'Mozilla/5.0',
-            ],
-        ]);
+        ])->get($downloadUrl);
 
-        $stream = $response->getBody();
+        if (!$response->successful()) {
+            return response()->json([
+                'error' => 'Download failed'
+            ], 500);
+        }
 
-        // ✅ Lấy filesize nếu có
-        $fileSize = $response->getHeaderLine('Content-Length');
+        Storage::disk('public')->put($path, $response->body());
 
-        return new StreamedResponse(function () use ($stream) {
-            while (!$stream->eof()) {
-                echo $stream->read(1024 * 1024); // 1MB chunk
-                flush();
-            }
-        }, 200, [
-            'Content-Type'        => 'application/octet-stream',
-            'Content-Disposition' => 'attachment; filename="drive_file"',
-            'Content-Length'      => $fileSize ?: null,
-            'Cache-Control'       => 'no-cache',
+        $fullPath = storage_path('app/public/' . $path);
+        $fileSize = filesize($fullPath);
+
+        return response()->json([
+            'file_name' => $fileName,
+            'file_path' => $path,
+            'file_size' => $fileSize,
+            'public_url' => asset('storage/' . $path),
         ]);
     }
 }
