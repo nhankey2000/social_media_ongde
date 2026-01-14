@@ -20,6 +20,9 @@ use App\Filament\Resources\ReportResource;
 use App\Filament\Resources\LocationResource;
 use App\Filament\Resources\TelegramMemberResource;
 use App\Filament\Resources\MenuNhaHangResource;
+use App\Filament\Resources\RepeatScheduledResource;
+use App\Filament\Resources\AiPostPromptResource;
+use App\Filament\Resources\FacebookAccountResource;
 use App\Models\MenuNhaHang;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
@@ -81,6 +84,9 @@ class AdminPanelProvider extends PanelProvider
                 LocationResource::class,
                 ReportResource::class,
                 TelegramMemberResource::class,
+                RepeatScheduledResource::class,
+                FacebookAccountResource::class,
+                AiPostPromptResource::class,
             ])
 //
 //            ->viteTheme('resources/css/filament/theme.css')
