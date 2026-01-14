@@ -5,50 +5,60 @@ namespace App\Http\Controllers\Webhooks;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Storage;
+use Symfony\Component\HttpFoundation\StreamedResponse;
+
 class DriveWebhookController extends Controller
 {
     public function download(Request $request)
     {
-        $driveUrl = $request->file_url;
+        $fileUrl = $request->input('file_url');
 
-        // Lấy file ID từ Google Drive
-        preg_match('/\/d\/(.*?)\//', $driveUrl, $matches);
-        $fileId = $matches[1] ?? null;
-
-        if (!$fileId) {
+        if (!$fileUrl) {
             return response()->json([
-                'error' => 'Invalid Google Drive link'
+                'error' => 'file_url is required'
+            ], 422);
+        }
+
+        // 1️⃣ HEAD để lấy chính xác file size (BYTE)
+        $head = Http::withoutVerifying()->head($fileUrl);
+
+        if (!$head->ok()) {
+            return response()->json([
+                'error' => 'Cannot fetch file info'
             ], 400);
         }
 
-        // Link tải trực tiếp (không bị robots.txt)
-        $downloadUrl = "https://drive.google.com/uc?export=download&id={$fileId}";
+        $fileSize = (int) ($head->header('Content-Length') ?? 0);
+        $mimeType = $head->header('Content-Type') ?? 'application/octet-stream';
 
-        $fileName = 'video_' . time() . '.mp4';
-        $path = 'uploads/videos/' . $fileName;
-
-        // Download file
-        $response = Http::withOptions([
-            'stream' => true,
-        ])->get($downloadUrl);
-
-        if (!$response->successful()) {
+        if ($fileSize <= 0) {
             return response()->json([
-                'error' => 'Download failed'
+                'error' => 'Invalid file size'
+            ], 400);
+        }
+
+        // 2️⃣ Stream file về dạng binary
+        $stream = Http::withoutVerifying()
+            ->withOptions(['stream' => true])
+            ->get($fileUrl);
+
+        if (!$stream->ok()) {
+            return response()->json([
+                'error' => 'Failed to download file'
             ], 500);
         }
 
-        Storage::disk('public')->put($path, $response->body());
-
-        $fullPath = storage_path('app/public/' . $path);
-        $fileSize = filesize($fullPath);
-
-        return response()->json([
-            'file_name' => $fileName,
-            'file_path' => $path,
-            'file_size' => $fileSize,
-            'public_url' => asset('storage/' . $path),
+        // 3️⃣ Trả về StreamedResponse (binary)
+        return new StreamedResponse(function () use ($stream) {
+            foreach ($stream->toPsrResponse()->getBody() as $chunk) {
+                echo $chunk;
+                flush();
+            }
+        }, 200, [
+            'Content-Type'        => $mimeType,
+            'Content-Length'      => $fileSize,      // ✅ BYTE
+            'X-Entity-Length'     => $fileSize,      // ✅ BYTE
+            'Content-Disposition'=> 'inline',
         ]);
     }
 }
