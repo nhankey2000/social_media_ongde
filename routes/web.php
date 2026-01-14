@@ -22,7 +22,7 @@ use App\Http\Controllers\BanhXeoCoTuController;
 use App\Http\Controllers\TheGoldNHController;
 use App\Http\Controllers\TheSaphiraNHController;
 use App\Http\Controllers\TheDiamondNHController;
-
+use App\Http\Controllers\Webhooks\DriveWebhookController;
 use App\Http\Controllers\DulieuTruyenThongController;
 use App\Http\Controllers\DulieuTruyenThongBXController;
 use App\Models\DataPost;
@@ -42,7 +42,7 @@ use App\Http\Controllers\FileController;
 | Web Routes
 |--------------------------------------------------------------------------
 */
-
+Route::post('/webhook/download-drive', [DriveWebhookController::class, 'download']);
 // Redirect root to licenses management
 Route::get('/licenses', function () {
     return redirect()->route('licenses.index');

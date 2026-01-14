@@ -12,14 +12,19 @@ $app = Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
-        //
+
+        // 🚀 BỎ CSRF CHO WEBHOOK
+        $middleware->validateCsrfTokens(except: [
+            'webhook/*',
+        ]);
+
     })
     ->withExceptions(function (Exceptions $exceptions) {
         //
     })
     ->create();
 
-// 👉 Đăng ký Kernel thủ công
+// Đăng ký Kernel
 $app->singleton(
     \Illuminate\Contracts\Console\Kernel::class,
     Kernel::class,
