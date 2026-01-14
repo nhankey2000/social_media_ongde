@@ -11,54 +11,51 @@ class DriveWebhookController extends Controller
 {
     public function download(Request $request)
     {
-        $fileUrl = $request->input('file_url');
+        $driveUrl = $request->input('file_url');
 
-        if (!$fileUrl) {
-            return response()->json([
-                'error' => 'file_url is required'
-            ], 422);
+        preg_match('/id=([^&]+)/', $driveUrl, $matches);
+        $fileId = $matches[1] ?? null;
+
+        if (!$fileId) {
+            return response()->json(['error' => 'Invalid Drive URL'], 400);
         }
 
-        // 1️⃣ HEAD để lấy chính xác file size (BYTE)
-        $head = Http::withoutVerifying()->head($fileUrl);
+        // ===== 1️⃣ Request đầu: lấy confirm token =====
+        $firstResponse = Http::withOptions([
+            'cookies' => true,
+        ])->get("https://drive.google.com/uc?export=download&id={$fileId}");
 
-        if (!$head->ok()) {
-            return response()->json([
-                'error' => 'Cannot fetch file info'
-            ], 400);
+        preg_match('/confirm=([0-9A-Za-z_]+)/', $firstResponse->body(), $tokenMatch);
+        $confirmToken = $tokenMatch[1] ?? null;
+
+        // ===== 2️⃣ URL tải thật =====
+        $downloadUrl = $confirmToken
+            ? "https://drive.google.com/uc?export=download&confirm={$confirmToken}&id={$fileId}"
+            : "https://drive.google.com/uc?export=download&id={$fileId}";
+
+        // ===== 3️⃣ Stream binary =====
+        $streamResponse = Http::withOptions([
+            'stream' => true,
+            'cookies' => true,
+        ])->get($downloadUrl);
+
+        if (!$streamResponse->successful()) {
+            return response()->json(['error' => 'Download failed'], 500);
         }
 
-        $fileSize = (int) ($head->header('Content-Length') ?? 0);
-        $mimeType = $head->header('Content-Type') ?? 'application/octet-stream';
+        // ===== 4️⃣ File size =====
+        $fileSize = (int) ($streamResponse->header('Content-Length') ?? 0);
 
-        if ($fileSize <= 0) {
-            return response()->json([
-                'error' => 'Invalid file size'
-            ], 400);
-        }
-
-        // 2️⃣ Stream file về dạng binary
-        $stream = Http::withoutVerifying()
-            ->withOptions(['stream' => true])
-            ->get($fileUrl);
-
-        if (!$stream->ok()) {
-            return response()->json([
-                'error' => 'Failed to download file'
-            ], 500);
-        }
-
-        // 3️⃣ Trả về StreamedResponse (binary)
-        return new StreamedResponse(function () use ($stream) {
-            foreach ($stream->toPsrResponse()->getBody() as $chunk) {
+        return new StreamedResponse(function () use ($streamResponse) {
+            foreach ($streamResponse->body() as $chunk) {
                 echo $chunk;
                 flush();
             }
         }, 200, [
-            'Content-Type'        => $mimeType,
-            'Content-Length'      => $fileSize,      // ✅ BYTE
-            'X-Entity-Length'     => $fileSize,      // ✅ BYTE
-            'Content-Disposition'=> 'inline',
+            'Content-Type' => 'application/octet-stream',
+            'Content-Disposition' => 'attachment; filename="video.mp4"',
+            'X-File-Size' => $fileSize,
+            'Cache-Control' => 'no-store',
         ]);
     }
 }
