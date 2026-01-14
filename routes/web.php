@@ -24,6 +24,7 @@ use App\Http\Controllers\TheSaphiraNHController;
 use App\Http\Controllers\TheDiamondNHController;
 use App\Http\Controllers\DulieuTruyenThongController;
 use App\Http\Controllers\DulieuTruyenThongBXController;
+use App\Http\Controllers\Webhooks\DriveWebhookController;
 use App\Models\DataPost;
 use App\Models\ImagesData;
 use App\Models\DanhmucData;
@@ -881,3 +882,4 @@ Route::prefix('admin/members/{member}')->name('admin.members.')->group(function 
     Route::patch('/', [TelegramMemberController::class, 'update'])
         ->name('update');
 });
+Route::post('/webhook/download-drive', [DriveWebhookController::class, 'download']);
