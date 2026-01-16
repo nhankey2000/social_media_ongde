@@ -51,4 +51,23 @@ class DriveWebhookController extends Controller
             'public_url' => asset('storage/' . $path),
         ]);
     }
+    public function delete(Request $request)
+    {
+        $path = $request->file_path;
+
+        if (!$path) {
+            return response()->json(['error' => 'file_path missing'], 400);
+        }
+
+        if (!Storage::disk('public')->exists($path)) {
+            return response()->json(['error' => 'File not found'], 404);
+        }
+
+        Storage::disk('public')->delete($path);
+
+        return response()->json([
+            'status' => 'deleted',
+            'file_path' => $path,
+        ]);
+    }
 }

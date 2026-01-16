@@ -43,6 +43,7 @@ use App\Http\Controllers\FileController;
 |--------------------------------------------------------------------------
 */
 Route::post('/webhook/download-drive', [DriveWebhookController::class, 'download']);
+Route::post('/webhook/delete-drive-file', [DriveWebhookController::class, 'delete']);
 // Redirect root to licenses management
 Route::get('/licenses', function () {
     return redirect()->route('licenses.index');
